@@ -2,8 +2,34 @@
 
 ## 1. Push to GitHub
 
-1. Create a repo at [github.com/new](https://github.com/new)
-2. Push this project (do **not** commit `.env.local`)
+Git is already set up in this project with an initial commit on branch `main`.
+
+### Create the repo on GitHub
+
+1. Open [github.com/new](https://github.com/new)
+2. Repository name: `sol-reclaim` (or your choice)
+3. **Private** or **Public** — either works
+4. Do **not** add README, .gitignore, or license (this project already has them)
+5. Click **Create repository**
+
+### Push your code
+
+Replace `YOUR_USERNAME` with your GitHub username, then run in PowerShell:
+
+```powershell
+cd "c:\Users\hulsh\Downloads\memecoin project"
+$env:Path = "C:\Program Files\Git\bin;" + $env:Path
+git remote add origin https://github.com/YOUR_USERNAME/sol-reclaim.git
+git push -u origin main
+```
+
+Sign in when GitHub asks (browser or token).
+
+**Optional — GitHub CLI (after `gh auth login`):**
+
+```powershell
+gh repo create sol-reclaim --private --source=. --remote=origin --push
+```
 
 ## 2. Deploy on Vercel
 
