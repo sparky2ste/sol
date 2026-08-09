@@ -8,10 +8,11 @@ Code lives at [github.com/sparky2ste/sol](https://github.com/sparky2ste/sol).
 
 1. [Cloudflare Dashboard](https://dash.cloudflare.com) → **Workers & Pages** → connect **sparky2ste/sol**
 2. Framework: **Next.js** (auto-detected)
-3. **Build command:** `npm run build`
+3. **Build command:** `node scripts/cf-build.mjs`  
+   (Do **not** use `npm run build` alone on older commits.)
 4. **Deploy command:** `npx wrangler deploy`
 
-The build script clears cached `.next` output, builds standalone, then bundles OpenNext. If deploy still fails, disable **build cache** in Cloudflare → Settings → Builds.
+After each push, start a **new** deployment from `main` — do not click **Retry** on failed runs (those reuse old commits). In the deployment details, confirm the commit starts with `26ca8a3` or newer.
 5. Add **Environment variables** (Production):
 
 | Name | Value |
