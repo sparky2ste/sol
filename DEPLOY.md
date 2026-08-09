@@ -11,7 +11,7 @@ Code lives at [github.com/sparky2ste/sol](https://github.com/sparky2ste/sol).
 3. **Build command:** `npm run build`
 4. **Deploy command:** `npx wrangler deploy`
 
-The `postbuild` script bundles OpenNext after Next.js builds — do **not** click "Retry" on old failed deploys; push a new commit or start a fresh deployment so Cloudflare pulls the latest code.
+The build script clears cached `.next` output, builds standalone, then bundles OpenNext. If deploy still fails, disable **build cache** in Cloudflare → Settings → Builds.
 5. Add **Environment variables** (Production):
 
 | Name | Value |
