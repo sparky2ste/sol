@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "dev:clean": "node -e \"require('fs').rmSync('.next',{recursive:true,force:true})\" && next dev",
+    "prebuild": "node -e \"if(process.env.CI){require('fs').rmSync('.next',{recursive:true,force:true})}\"",
     "build": "next build",
     "postbuild": "opennextjs-cloudflare build --skipNextBuild",
     "build:opennext": "node scripts/build.mjs",
