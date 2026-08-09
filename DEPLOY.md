@@ -8,10 +8,8 @@ Code lives at [github.com/sparky2ste/sol](https://github.com/sparky2ste/sol).
 
 1. [Cloudflare Dashboard](https://dash.cloudflare.com) → **Workers & Pages** → connect **sparky2ste/sol**
 2. Framework: **Next.js** (auto-detected)
-3. **Build command:** `npm run cf:build`
+3. **Build command:** `npm run build` (runs OpenNext + Next.js automatically)
 4. **Deploy command:** `npx wrangler deploy`
-
-> Do **not** use `npm run build` alone — that only runs Next.js and skips the OpenNext bundle Cloudflare needs.
 5. Add **Environment variables** (Production):
 
 | Name | Value |
