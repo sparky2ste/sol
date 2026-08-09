@@ -14,6 +14,10 @@
 # next.js
 /.next/
 /out/
+.open-next/
+
+# cloudflare local dev (secrets go in dashboard env vars for production)
+.dev.vars
 
 # production
 /build

@@ -1,55 +1,29 @@
-# Deploy SOL Reclaim (Vercel)
+# Deploy SOL Reclaim (Cloudflare Workers)
 
-## 1. Push to GitHub
+## 1. GitHub
 
-Git is already set up in this project with an initial commit on branch `main`.
+Code lives at [github.com/sparky2ste/sol](https://github.com/sparky2ste/sol).
 
-### Create the repo on GitHub
+## 2. Cloudflare Workers (Pages)
 
-1. Open [github.com/new](https://github.com/new)
-2. Repository name: `sol-reclaim` (or your choice)
-3. **Private** or **Public** — either works
-4. Do **not** add README, .gitignore, or license (this project already has them)
-5. Click **Create repository**
-
-### Push your code
-
-Replace `YOUR_USERNAME` with your GitHub username, then run in PowerShell:
-
-```powershell
-cd "c:\Users\hulsh\Downloads\memecoin project"
-$env:Path = "C:\Program Files\Git\bin;" + $env:Path
-git remote add origin https://github.com/YOUR_USERNAME/sol-reclaim.git
-git push -u origin main
-```
-
-Sign in when GitHub asks (browser or token).
-
-**Optional — GitHub CLI (after `gh auth login`):**
-
-```powershell
-gh repo create sol-reclaim --private --source=. --remote=origin --push
-```
-
-## 2. Deploy on Vercel
-
-1. Go to [vercel.com/new](https://vercel.com/new)
-2. Import your GitHub repository
-3. Framework: **Next.js** (auto-detected)
-4. Add **Environment Variables** (Production + Preview):
+1. [Cloudflare Dashboard](https://dash.cloudflare.com) → **Workers & Pages** → connect **sparky2ste/sol**
+2. Framework: **Next.js** (auto-detected)
+3. **Build command:** `npm run build`
+4. **Deploy command:** `npx wrangler deploy`
+5. Add **Environment variables** (Production):
 
 | Name | Value |
 |------|--------|
 | `HELIUS_API_KEY` | Your key from [helius.dev](https://helius.dev) |
 | `NEXT_PUBLIC_FEE_WALLET` | Your Solana wallet address (receives 1% fees) |
 
-5. Click **Deploy**
+6. Deploy
 
-Your site will be live at `https://your-project.vercel.app`.
+Your site will be live at `https://sol.<your-subdomain>.workers.dev` until you add a custom domain.
 
-## 3. Custom domain (optional)
+## 3. Custom domain (Cloudflare)
 
-Vercel → Project → **Settings → Domains** → add your domain and update DNS.
+Workers & Pages → your project → **Custom domains** → add your domain. DNS stays in Cloudflare.
 
 ## 4. After deploy — checklist
 
@@ -58,7 +32,7 @@ Vercel → Project → **Settings → Domains** → add your domain and update D
 - [ ] Claim transaction succeeds and SOL arrives in wallet
 - [ ] 1% fee lands in `NEXT_PUBLIC_FEE_WALLET`
 - [ ] Test on mobile: **Open in Phantom** → connect → claim
-- [ ] Enable **2FA** on GitHub and Vercel
+- [ ] Enable **2FA** on GitHub and Cloudflare
 - [ ] Rotate Helius key if it was ever shared publicly
 
 ## 5. Local development
@@ -71,6 +45,8 @@ npm run dev
 ```
 
 If you see cache errors: `npm run dev:clean`
+
+Preview in the Workers runtime locally: `npm run preview`
 
 ## Security notes
 
