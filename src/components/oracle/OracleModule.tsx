@@ -99,8 +99,9 @@ export function OracleModule() {
           </button>
         </div>
         <p className={`mt-3 text-xs ${ui.muted}`}>
-          On-chain holders, bundler heuristics, DexScreener market data, and
-          social links — then an AI-style verdict with mcap range + confidence.
+          Paste the <strong className="text-zinc-400">token mint (CA)</strong>,
+          not a wallet address. Find it on DexScreener or Solscan under the
+          token — not your Phantom address.
         </p>
       </form>
 

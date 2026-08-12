@@ -1,11 +1,37 @@
+import { Connection, PublicKey } from "@solana/web3.js";
 import { getServerConnection, isValidSolanaAddress } from "@/lib/solana/rpc";
+import {
+  TOKEN_PROGRAM_ID,
+  TOKEN_2022_PROGRAM_ID,
+} from "@/lib/solana/constants";
 import { fetchDexScreenerMarket } from "./fetchMarket";
 import { fetchOnChainHolderAnalysis } from "./fetchOnChain";
 import { buildSocialMentions, generateOracleVerdict } from "./generateVerdict";
 import type { OracleReport } from "./types";
 
+async function assertTokenMint(connection: Connection, mint: string): Promise<void> {
+  const pubkey = new PublicKey(mint);
+  const info = await connection.getAccountInfo(pubkey, "confirmed");
+
+  if (!info) {
+    throw new Error("Address not found on Solana mainnet.");
+  }
+
+  const owner = info.owner.toBase58();
+  const isMint =
+    owner === TOKEN_PROGRAM_ID.toBase58() ||
+    owner === TOKEN_2022_PROGRAM_ID.toBase58();
+
+  if (!isMint) {
+    throw new Error(
+      "That address is not a token mint. Paste the token CA (mint address), not a wallet or pool."
+    );
+  }
+}
+
 export async function analyzeToken(mint: string): Promise<OracleReport> {
   const connection = getServerConnection();
+  await assertTokenMint(connection, mint);
 
   const dex = await fetchDexScreenerMarket(mint);
   const onChain = await fetchOnChainHolderAnalysis(

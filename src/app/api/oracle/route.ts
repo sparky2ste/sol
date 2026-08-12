@@ -73,7 +73,11 @@ export async function GET(request: NextRequest) {
     });
   } catch (err) {
     const message =
-      err instanceof Error ? err.message : "Failed to analyze token";
+      err instanceof Error && err.message
+        ? err.message
+        : typeof err === "string"
+          ? err
+          : "Failed to analyze token. Check the CA is a token mint.";
     return NextResponse.json(
       { error: "ORACLE_FAILED", message },
       { status: 500 }
