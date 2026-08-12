@@ -47,6 +47,9 @@ export function WalletCleaner() {
   const [turnstileResetKey, setTurnstileResetKey] = useState(0);
   const scanInFlightRef = useRef(false);
   const autoScannedWalletRef = useRef<string | null>(null);
+  const isWorkersDev =
+    typeof window !== "undefined" &&
+    window.location.hostname.endsWith(".workers.dev");
 
   const feeWallet = useMemo(() => getFeeWallet(), []);
 
@@ -85,7 +88,7 @@ export function WalletCleaner() {
         setWalletBalance(balance);
       } catch (err) {
         const apiError = err as Error & { code?: string };
-        if (apiError.code === "TURNSTILE_FAILED") {
+        if (apiError.code === "TURNSTILE_FAILED" && !isWorkersDev) {
           setNeedsTurnstile(true);
           setTurnstileResetKey((key) => key + 1);
         }
@@ -269,7 +272,7 @@ export function WalletCleaner() {
         </button>
       </div>
 
-      {rpcConfigured === true && needsTurnstile && !loading && (
+      {rpcConfigured === true && needsTurnstile && !isWorkersDev && !loading && (
         <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 px-4 py-3">
           <p className="mb-2 text-center text-xs text-surface-muted">
             One-time security check to scan your wallet.

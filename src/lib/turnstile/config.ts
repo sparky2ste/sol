@@ -1,3 +1,5 @@
+import { getServerEnv } from "@/lib/solana/env";
+
 /** Public Turnstile site key (safe in client bundle). */
 export const TURNSTILE_SITE_KEY =
   process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ??
@@ -16,8 +18,12 @@ const DEFAULT_HOSTNAMES = [
   "sol.sparky2ste.workers.dev",
 ];
 
+export function normalizeRequestHost(host: string): string {
+  return host.toLowerCase().split(",")[0].trim().split(":")[0];
+}
+
 export function isWorkersDevHost(hostname: string): boolean {
-  return hostname.toLowerCase().endsWith(".workers.dev");
+  return normalizeRequestHost(hostname).endsWith(".workers.dev");
 }
 
 /** Use Turnstile test keys on workers.dev when the widget domain is not registered. */
@@ -38,7 +44,12 @@ export function getTurnstileSecretForRequest(
   if (isTurnstileTestMode(requestHost)) {
     return TURNSTILE_TEST_SECRET;
   }
-  return process.env.TURNSTILE_SECRET?.trim() || undefined;
+  return getServerEnv("TURNSTILE_SECRET");
+}
+
+/** Staging workers.dev URLs skip the Turnstile widget (rate limits still apply). */
+export function shouldSkipTurnstile(requestHost: string): boolean {
+  return isWorkersDevHost(requestHost);
 }
 
 export function getTurnstileHostnames(requestHost?: string): Set<string> {
@@ -52,8 +63,7 @@ export function getTurnstileHostnames(requestHost?: string): Set<string> {
   }
 
   if (requestHost) {
-    const normalized = requestHost.toLowerCase().split(":")[0];
-    list.push(normalized);
+    list.push(normalizeRequestHost(requestHost));
   }
 
   return new Set(list);

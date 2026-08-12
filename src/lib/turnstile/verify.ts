@@ -60,12 +60,11 @@ export async function verifyTurnstileToken(
     isTurnstileTestMode(requestHost) ||
     result.action === expectedAction;
 
-  if (
-    !result.success ||
-    !actionOk ||
-    !result.hostname ||
-    !expectedHostnames.has(result.hostname)
-  ) {
+  const hostnameOk =
+    isTurnstileTestMode(requestHost) ||
+    (!!result.hostname && expectedHostnames.has(result.hostname));
+
+  if (!result.success || !actionOk || !hostnameOk) {
     return { ok: false, message: "Security check failed. Try again." };
   }
 

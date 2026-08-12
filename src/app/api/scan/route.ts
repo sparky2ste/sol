@@ -7,7 +7,11 @@ import {
   isValidSolanaAddress,
 } from "@/lib/solana/rpc";
 import { getClientIp, rateLimit, rateLimitResponse } from "@/lib/rateLimit";
-import { TURNSTILE_ACTION_SCAN } from "@/lib/turnstile/config";
+import {
+  normalizeRequestHost,
+  shouldSkipTurnstile,
+  TURNSTILE_ACTION_SCAN,
+} from "@/lib/turnstile/config";
 import {
   createVerificationSessionToken,
   isVerificationSessionValid,
@@ -20,14 +24,11 @@ export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 function getRequestHost(request: NextRequest): string {
-  return (
+  return normalizeRequestHost(
     request.headers.get("x-forwarded-host") ??
-    request.headers.get("host") ??
-    "localhost"
-  )
-    .split(",")[0]
-    .trim()
-    .toLowerCase();
+      request.headers.get("host") ??
+      "localhost"
+  );
 }
 
 export async function GET(request: NextRequest) {
@@ -40,9 +41,12 @@ export async function GET(request: NextRequest) {
 
   const sessionToken = request.cookies.get(VERIFICATION_SESSION_COOKIE)?.value;
   const hasValidSession = isVerificationSessionValid(sessionToken, requestHost);
+  const skipTurnstile = shouldSkipTurnstile(requestHost);
   let issueSession = false;
 
-  if (!hasValidSession) {
+  if (!hasValidSession && skipTurnstile) {
+    issueSession = true;
+  } else if (!hasValidSession) {
     const turnstileToken = request.headers.get("cf-turnstile-response");
     const turnstile = await verifyTurnstileToken(
       turnstileToken,
