@@ -17,10 +17,11 @@
 
 **Environment variables:**
 
-| Name | Value |
-|---|---|
-| `HELIUS_API_KEY` | Your Helius key |
-| `NEXT_PUBLIC_FEE_WALLET` | Solana wallet for 1% fees |
+| Name | Where | Value |
+|---|---|---|
+| `HELIUS_API_KEY` | **Variables and Secrets** (encrypted, runtime) | Your Helius key from [helius.dev](https://helius.dev) |
+
+The fee wallet (`8SHY8J3gy6L9aaZzmQdR4JJTgZXBH3ArkJVWKw1ES9eH`) is baked into the codebase and `wrangler.jsonc`. Do not remove it.
 
 ## Custom domain flagged as phishing?
 

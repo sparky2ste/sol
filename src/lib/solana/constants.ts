@@ -52,16 +52,20 @@ export function getInitialRpcUrl(): string {
   );
 }
 
-export function getFeeWallet(): PublicKey | null {
-  const address = process.env.NEXT_PUBLIC_FEE_WALLET;
-  if (!address || address === "YOUR_SOLANA_WALLET_ADDRESS_HERE") {
-    return null;
+/** Platform fee recipient — permanent, do not remove or change without owner approval */
+export const FEE_WALLET_ADDRESS =
+  "8SHY8J3gy6L9aaZzmQdR4JJTgZXBH3ArkJVWKw1ES9eH";
+
+export function getFeeWalletAddress(): string {
+  const fromEnv = process.env.NEXT_PUBLIC_FEE_WALLET?.trim();
+  if (fromEnv && fromEnv !== "YOUR_SOLANA_WALLET_ADDRESS_HERE") {
+    return fromEnv;
   }
-  try {
-    return new PublicKey(address);
-  } catch {
-    return null;
-  }
+  return FEE_WALLET_ADDRESS;
+}
+
+export function getFeeWallet(): PublicKey {
+  return new PublicKey(getFeeWalletAddress());
 }
 
 export function lamportsToSol(lamports: number): number {

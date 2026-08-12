@@ -88,13 +88,6 @@ export function WalletCleaner() {
   const handleClaim = async () => {
     if (!publicKey || !signTransaction || !scanResult?.accounts.length) return;
 
-    if (!feeWallet) {
-      setError(
-        "Fee wallet not configured. Set NEXT_PUBLIC_FEE_WALLET in .env.local."
-      );
-      return;
-    }
-
     if (summary && summary.youReceiveLamports <= 0) {
       setError(
         "Reclaim amount too small after fees are taken from your SOL. Need more empty accounts."
@@ -304,7 +297,7 @@ export function WalletCleaner() {
               <button
                 type="button"
                 onClick={handleClaim}
-                disabled={claiming || !feeWallet || !rpcConfigured}
+                disabled={claiming || !rpcConfigured}
                 className={`${ui.btnPrimary} w-full py-3.5 text-base`}
               >
                 {claiming ? (
@@ -326,12 +319,6 @@ export function WalletCleaner() {
                 )}
               </button>
 
-              {!feeWallet && (
-                <p className="text-center text-xs text-amber-400/90">
-                  Set NEXT_PUBLIC_FEE_WALLET in .env.local to enable claiming.
-                </p>
-              )}
-
               <p className="text-center text-xs text-zinc-500">
                 Only empty accounts are closed here. Use Burn for tokens with a
                 balance.
@@ -346,10 +333,6 @@ export function WalletCleaner() {
             )}
         </>
         )
-      ) : rpcConfigured === false ? (
-        <div className="text-center py-8 text-surface-muted text-sm">
-          Configure Helius API key above to enable wallet scanning.
-        </div>
       ) : null}
     </div>
   );

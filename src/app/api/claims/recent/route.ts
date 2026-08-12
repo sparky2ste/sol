@@ -1,10 +1,9 @@
-import { PublicKey } from "@solana/web3.js";
 import { NextRequest, NextResponse } from "next/server";
 import { fetchRecentClaims } from "@/lib/solana/fetchRecentClaims";
+import { getFeeWallet } from "@/lib/solana/constants";
 import {
   getServerConnection,
   getServerRpcUrl,
-  isValidSolanaAddress,
 } from "@/lib/solana/rpc";
 import { getClientIp, rateLimit, rateLimitResponse } from "@/lib/rateLimit";
 
@@ -25,10 +24,7 @@ export async function GET(request: NextRequest) {
     25
   );
 
-  const feeWallet = process.env.NEXT_PUBLIC_FEE_WALLET?.trim();
-  if (!feeWallet || !isValidSolanaAddress(feeWallet)) {
-    return NextResponse.json({ claims: [] });
-  }
+  const feeWallet = getFeeWallet();
 
   if (!getServerRpcUrl()) {
     return NextResponse.json({ claims: [] });
@@ -43,11 +39,7 @@ export async function GET(request: NextRequest) {
 
   try {
     const connection = getServerConnection();
-    const claims = await fetchRecentClaims(
-      connection,
-      new PublicKey(feeWallet),
-      limit
-    );
+    const claims = await fetchRecentClaims(connection, feeWallet, limit);
 
     const payload = { claims };
     cache.data = payload;

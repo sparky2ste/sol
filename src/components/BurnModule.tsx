@@ -89,11 +89,6 @@ export function BurnModule({
   const handleBurn = useCallback(async () => {
     if (!publicKey || !signTransaction || selectedAccounts.length === 0) return;
 
-    if (!feeWallet) {
-      setError("Fee wallet not configured.");
-      return;
-    }
-
     setBurning(true);
     setProgress(null);
     setError(null);
@@ -230,7 +225,6 @@ export function BurnModule({
         disabled={
           burning ||
           selected.size === 0 ||
-          !feeWallet ||
           !rpcConfigured ||
           !summary ||
           summary.youReceiveLamports <= 0
