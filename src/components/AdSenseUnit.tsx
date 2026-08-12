@@ -1,7 +1,12 @@
 "use client";
 
-import { useEffect, useRef } from "react";
-import { ADSENSE_CLIENT, ADSENSE_SLOT } from "@/lib/adsense/config";
+import Script from "next/script";
+import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  ADSENSE_CLIENT,
+  ADSENSE_SCRIPT,
+  ADSENSE_SLOT,
+} from "@/lib/adsense/config";
 
 declare global {
   interface Window {
@@ -9,65 +14,103 @@ declare global {
   }
 }
 
+const pushedSlots = new Set<string>();
+
 interface AdSenseUnitProps {
   className?: string;
+  slot?: string;
 }
 
-/**
- * Responsive display unit. Placed below the wallet tool so reclaim/burn UX stays clean.
- * Set NEXT_PUBLIC_ADSENSE_SLOT after creating an ad unit in the AdSense dashboard.
- */
-export function AdSenseUnit({ className = "" }: AdSenseUnitProps) {
-  const pushedRef = useRef(false);
+function pushAdSlot(slot: string) {
+  if (pushedSlots.has(slot)) return;
+  try {
+    (window.adsbygoogle = window.adsbygoogle || []).push({});
+    pushedSlots.add(slot);
+  } catch {
+    // Blocked by ad blocker or script not ready.
+  }
+}
+
+export function AdSenseUnit({
+  className = "",
+  slot = ADSENSE_SLOT,
+}: AdSenseUnitProps) {
+  const insRef = useRef<HTMLModElement>(null);
+  const [scriptReady, setScriptReady] = useState(false);
+  const [showFrame, setShowFrame] = useState(true);
+
+  const tryPush = useCallback(() => {
+    if (!slot || !insRef.current) return;
+    window.requestAnimationFrame(() => {
+      pushAdSlot(slot);
+    });
+  }, [slot]);
 
   useEffect(() => {
-    if (!ADSENSE_SLOT || pushedRef.current) return;
+    if (!scriptReady) return;
+    tryPush();
+  }, [scriptReady, tryPush]);
 
-    const pushAd = () => {
-      try {
-        (window.adsbygoogle = window.adsbygoogle || []).push({});
-        pushedRef.current = true;
-      } catch {
-        // Ad blockers or AdSense still loading.
+  useEffect(() => {
+    const ins = insRef.current;
+    if (!ins) return;
+
+    const hideIfEmpty = () => {
+      const status = ins.getAttribute("data-ad-status");
+      if (status === "unfilled") {
+        setShowFrame(false);
       }
     };
 
-    if (window.adsbygoogle) {
-      pushAd();
-      return;
-    }
+    hideIfEmpty();
 
-    const interval = window.setInterval(() => {
-      if (!window.adsbygoogle) return;
-      window.clearInterval(interval);
-      pushAd();
-    }, 250);
+    const observer = new MutationObserver(hideIfEmpty);
+    observer.observe(ins, {
+      attributes: true,
+      attributeFilter: ["data-ad-status"],
+    });
 
-    return () => window.clearInterval(interval);
-  }, []);
+    const timeout = window.setTimeout(hideIfEmpty, 4000);
 
-  if (!ADSENSE_SLOT) {
-    return null;
-  }
+    return () => {
+      observer.disconnect();
+      window.clearTimeout(timeout);
+    };
+  }, [slot]);
+
+  if (!slot) return null;
 
   return (
-    <aside
-      className={`overflow-hidden ${className}`}
-      aria-label="Advertisement"
-    >
-      <div className="mx-auto max-w-3xl rounded-xl border border-zinc-800/50 bg-zinc-900/25 px-2 py-3">
-        <p className="mb-2 text-center text-[10px] uppercase tracking-wider text-zinc-600">
-          Sponsored
-        </p>
-        <ins
-          className="adsbygoogle block min-h-[90px] w-full"
-          style={{ display: "block" }}
-          data-ad-client={ADSENSE_CLIENT}
-          data-ad-slot={ADSENSE_SLOT}
-          data-ad-format="auto"
-          data-full-width-responsive="true"
-        />
-      </div>
-    </aside>
+    <>
+      <Script
+        id={`adsense-${slot}`}
+        async
+        src={ADSENSE_SCRIPT}
+        crossOrigin="anonymous"
+        strategy="afterInteractive"
+        onLoad={() => setScriptReady(true)}
+      />
+      {showFrame && (
+        <aside
+          className={`overflow-hidden ${className}`}
+          aria-label="Advertisement"
+        >
+          <div className="mx-auto max-w-3xl rounded-xl border border-zinc-800/50 bg-zinc-900/25 px-2 py-3">
+            <p className="mb-2 text-center text-[10px] uppercase tracking-wider text-zinc-600">
+              Sponsored
+            </p>
+            <ins
+              ref={insRef}
+              className="adsbygoogle block min-h-[100px] w-full"
+              style={{ display: "block" }}
+              data-ad-client={ADSENSE_CLIENT}
+              data-ad-slot={slot}
+              data-ad-format="auto"
+              data-full-width-responsive="true"
+            />
+          </div>
+        </aside>
+      )}
+    </>
   );
 }

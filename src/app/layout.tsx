@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { Inter, Space_Grotesk } from "next/font/google";
 import { ClientProviders } from "@/components/ClientProviders";
-import { AdSenseScript } from "@/components/AdSenseScript";
 import { PageBackground } from "@/components/PageBackground";
 import { BRAND } from "@/lib/brand";
 import "./globals.css";
@@ -46,7 +45,6 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${inter.variable} ${spaceGrotesk.variable}`}>
       <body className={`${inter.className} min-h-screen antialiased`}>
-        <AdSenseScript />
         <PageBackground />
         <ClientProviders>{children}</ClientProviders>
       </body>
