@@ -2,13 +2,13 @@ import { Connection, PublicKey } from "@solana/web3.js";
 import { getMint } from "@solana/spl-token";
 import type { OracleBundlerSignal, OracleHolderWallet } from "./types";
 
-const LP_PROGRAM_HINTS = [
-  "675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8", // Raydium AMM
-  "CAMMCzo5YL8w4VFF8KVHrK22GGUsp5VTaW7grrKgrWqK", // Raydium CLMM
-  "whirLbMiicVdio4qvUfM5KAg6Ct8VwpYzGff3uctyCc", // Orca
-  "pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA", // PumpSwap
-  "6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P", // Pump.fun program
-];
+const LP_PROGRAM_HINTS = new Set([
+  "675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8",
+  "CAMMCzo5YL8w4VFF8KVHrK22GGUsp5VTaW7grrKgrWqK",
+  "whirLbMiicVdio4qvUfM5KAg6Ct8VwpYzGff3uctyCc",
+  "pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA",
+  "6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P",
+]);
 
 const KNOWN_LP_LABELS: Record<string, string> = {
   "675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8": "Raydium LP",
@@ -16,24 +16,8 @@ const KNOWN_LP_LABELS: Record<string, string> = {
   "whirLbMiicVdio4qvUfM5KAg6Ct8VwpYzGff3uctyCc": "Orca LP",
 };
 
-function isLikelyLp(owner: string, tags: string[]): boolean {
-  if (LP_PROGRAM_HINTS.includes(owner)) return true;
-  return tags.some((t) => t.includes("LP") || t.includes("Pool"));
-}
-
-async function getWalletSolBalance(
-  connection: Connection,
-  address: string
-): Promise<number> {
-  try {
-    return await connection.getBalance(new PublicKey(address), "confirmed");
-  } catch {
-    return 0;
-  }
-}
-
 function clusterByExactAmount(
-  holders: { uiAmount: number; address: string }[]
+  holders: { uiAmount: number }[]
 ): Map<number, number> {
   const clusters = new Map<number, number>();
   for (const h of holders) {
@@ -63,15 +47,26 @@ export async function fetchOnChainHolderAnalysis(
   bundlerSignals: OracleBundlerSignal[];
 }> {
   const mint = new PublicKey(mintAddress);
-  const mintInfo = await getMint(connection, mint, "confirmed");
+  const [mintInfo, largest] = await Promise.all([
+    getMint(connection, mint, "confirmed"),
+    connection.getTokenLargestAccounts(mint, "confirmed"),
+  ]);
 
   const mintAuthority = mintInfo.mintAuthority?.toBase58() ?? null;
   const freezeAuthority = mintInfo.freezeAuthority?.toBase58() ?? null;
   const mintRenounced = mintAuthority === null;
   const freezeRenounced = freezeAuthority === null;
-
-  const largest = await connection.getTokenLargestAccounts(mint, "confirmed");
   const supply = Number(mintInfo.supply);
+
+  const tokenAccountPubkeys = largest.value
+    .filter((e) => e.address && e.uiAmount != null)
+    .map((e) => e.address!);
+
+  const parsedAccounts = await Promise.all(
+    tokenAccountPubkeys.map((pk) =>
+      connection.getParsedAccountInfo(pk, "confirmed")
+    )
+  );
 
   const rawHolders: {
     address: string;
@@ -80,41 +75,28 @@ export async function fetchOnChainHolderAnalysis(
     owner: string;
   }[] = [];
 
-  for (const entry of largest.value) {
-    if (!entry.address || entry.uiAmount == null) continue;
-    try {
-      const accountInfo = await connection.getParsedAccountInfo(
-        entry.address,
-        "confirmed"
-      );
-      const owner =
-        (accountInfo.value?.data as { parsed?: { info?: { owner?: string } } })
-          ?.parsed?.info?.owner ?? entry.address.toBase58();
+  largest.value.forEach((entry, i) => {
+    if (!entry.address || entry.uiAmount == null) return;
 
-      rawHolders.push({
-        address: owner,
-        amount: Number(entry.amount),
-        uiAmount: entry.uiAmount,
-        owner,
-      });
-    } catch {
-      rawHolders.push({
-        address: entry.address.toBase58(),
-        amount: Number(entry.amount),
-        uiAmount: entry.uiAmount,
-        owner: entry.address.toBase58(),
-      });
-    }
-  }
+    const owner =
+      (parsedAccounts[i]?.value?.data as {
+        parsed?: { info?: { owner?: string } };
+      })?.parsed?.info?.owner ?? entry.address.toBase58();
+
+    rawHolders.push({
+      address: owner,
+      amount: Number(entry.amount),
+      uiAmount: entry.uiAmount,
+      owner,
+    });
+  });
 
   const holderCountEstimate = Math.max(rawHolders.length, largest.value.length);
-
   const topHolders: OracleHolderWallet[] = [];
   let lpHoldPercent = 0;
   let devHoldPercent = 0;
   let botLikePercent = 0;
   const bundlerSignals: OracleBundlerSignal[] = [];
-
   const walletHolders: { address: string; uiAmount: number; percent: number }[] =
     [];
 
@@ -128,7 +110,7 @@ export async function fetchOnChainHolderAnalysis(
     } else if (KNOWN_LP_LABELS[h.owner]) {
       tags.push(KNOWN_LP_LABELS[h.owner]);
       lpHoldPercent += percent;
-    } else if (isLikelyLp(h.owner, tags)) {
+    } else if (LP_PROGRAM_HINTS.has(h.owner)) {
       tags.push("AMM Pool");
       lpHoldPercent += percent;
     } else {
@@ -152,9 +134,8 @@ export async function fetchOnChainHolderAnalysis(
     });
   }
 
-  const clusters = clusterByExactAmount(walletHolders);
-  for (const [amount, count] of clusters) {
-    if (count >= 3 && amount > 0) {
+  for (const [, count] of clusterByExactAmount(walletHolders)) {
+    if (count >= 3) {
       botLikePercent += (count / Math.max(walletHolders.length, 1)) * 15;
     }
   }
@@ -164,42 +145,52 @@ export async function fetchOnChainHolderAnalysis(
     .slice(0, 10)
     .reduce((sum, h) => sum + (supply > 0 ? (h.amount / supply) * 100 : 0), 0);
 
-  for (const wallet of walletHolders.slice(0, 8)) {
-    const solBalance = await getWalletSolBalance(connection, wallet.address);
-    const tags: string[] = [];
+  const bundlerCandidates = walletHolders
+    .filter((w) => w.percent >= 0.8)
+    .slice(0, 4);
 
-    if (solBalance < 50_000_000 && wallet.percent >= 0.5) {
-      tags.push("Low SOL wallet");
-      botLikePercent = Math.min(100, botLikePercent + wallet.percent * 0.3);
-    }
+  if (bundlerCandidates.length > 0) {
+    const balances = await connection.getMultipleAccountsInfo(
+      bundlerCandidates.map((w) => new PublicKey(w.address)),
+      "confirmed"
+    );
 
-    if (pairCreatedAt && wallet.percent >= 1) {
-      try {
-        const sigs = await connection.getSignaturesForAddress(
-          new PublicKey(wallet.address),
-          { limit: 5 }
-        );
-        const oldest = sigs[sigs.length - 1]?.blockTime;
-        if (
-          oldest &&
-          oldest * 1000 < pairCreatedAt + 10 * 60 * 1000 &&
-          wallet.percent >= 0.8
-        ) {
-          tags.push("Early buyer");
-          bundlerSignals.push({
-            address: wallet.address,
-            percent: wallet.percent,
-            reason: "Bought within ~10 min of pool creation — possible sniper/bundler",
-          });
-        }
-      } catch {
-        // Skip signature lookup failures
+    for (let i = 0; i < bundlerCandidates.length; i++) {
+      const wallet = bundlerCandidates[i];
+      const solBalance = balances[i]?.lamports ?? 0;
+      const tags: string[] = [];
+
+      if (solBalance < 50_000_000 && wallet.percent >= 0.5) {
+        tags.push("Low SOL wallet");
+        botLikePercent = Math.min(100, botLikePercent + wallet.percent * 0.3);
       }
-    }
 
-    const holder = topHolders.find((t) => t.address === wallet.address);
-    if (holder) {
-      holder.tags.push(...tags);
+      if (pairCreatedAt && wallet.percent >= 1) {
+        try {
+          const sigs = await connection.getSignaturesForAddress(
+            new PublicKey(wallet.address),
+            { limit: 3 }
+          );
+          const oldest = sigs[sigs.length - 1]?.blockTime;
+          if (
+            oldest &&
+            oldest * 1000 < pairCreatedAt + 10 * 60 * 1000
+          ) {
+            tags.push("Early buyer");
+            bundlerSignals.push({
+              address: wallet.address,
+              percent: wallet.percent,
+              reason:
+                "Bought within ~10 min of pool creation — possible sniper/bundler",
+            });
+          }
+        } catch {
+          // Skip signature lookup failures
+        }
+      }
+
+      const holder = topHolders.find((t) => t.address === wallet.address);
+      if (holder) holder.tags.push(...tags);
     }
   }
 

@@ -40,12 +40,22 @@ export function rateLimit(
 }
 
 export function getClientIp(request: NextRequest): string {
-  return (
+  const ip =
     request.headers.get("cf-connecting-ip") ??
-    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
+    request.headers.get("true-client-ip") ??
     request.headers.get("x-real-ip") ??
-    "unknown"
-  );
+    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
+
+  return ip && ip.length > 0 ? ip : "unknown";
+}
+
+/** Only counts uncached / expensive work — call after cache miss. */
+export function rateLimitAnalysis(
+  key: string,
+  limit: number,
+  windowMs: number
+): { ok: true } | { ok: false; retryAfterSec: number } {
+  return rateLimit(key, limit, windowMs);
 }
 
 export function rateLimitResponse(retryAfterSec: number): Response {

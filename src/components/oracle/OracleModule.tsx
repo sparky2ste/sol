@@ -51,9 +51,19 @@ export function OracleModule() {
     setReport(null);
 
     try {
-      const res = await fetch(`/api/oracle?mint=${encodeURIComponent(ca)}`);
+      const res = await fetch(`/api/oracle?mint=${encodeURIComponent(ca)}`, {
+        cache: "no-store",
+      });
       const data = await res.json();
       if (!res.ok) {
+        if (res.status === 429) {
+          const retry = res.headers.get("Retry-After");
+          throw new Error(
+            retry
+              ? `Rate limited — wait ${retry}s and try again.`
+              : (data.message ?? "Too many requests. Wait a moment and retry.")
+          );
+        }
         throw new Error(data.message ?? "Analysis failed");
       }
       setReport(data as OracleReport);

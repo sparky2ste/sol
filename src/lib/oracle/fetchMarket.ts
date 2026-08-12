@@ -55,67 +55,13 @@ export async function fetchDexScreenerMarket(
   const data = (await res.json()) as { pairs?: DexPair[] };
   const pair = pickBestSolanaPair(data.pairs ?? []);
 
-  let profileSocials: { platform: string; handle: string; url: string }[] = [];
-  let profileWebsites: string[] = [];
-  let description: string | undefined;
-  let imageUrl: string | undefined;
-
-  try {
-    const profileRes = await fetch(
-      "https://api.dexscreener.com/token-profiles/latest/v1",
-      { next: { revalidate: 0 } }
-    );
-    if (profileRes.ok) {
-      const profiles = (await profileRes.json()) as Array<{
-        chainId?: string;
-        tokenAddress?: string;
-        description?: string;
-        icon?: string;
-        links?: Array<{ type?: string; label?: string; url?: string }>;
-      }>;
-      const profile = profiles.find(
-        (p) =>
-          p.chainId === "solana" &&
-          p.tokenAddress?.toLowerCase() === mint.toLowerCase()
-      );
-      if (profile) {
-        description = profile.description;
-        imageUrl = profile.icon;
-        for (const link of profile.links ?? []) {
-          if (!link.url) continue;
-          const type = (link.type ?? link.label ?? "").toLowerCase();
-          if (type.includes("twitter") || link.url.includes("x.com")) {
-            const handle = link.url.split("/").pop() ?? link.label ?? "twitter";
-            profileSocials.push({
-              platform: "twitter",
-              handle: handle.replace("@", ""),
-              url: link.url,
-            });
-          } else if (type.includes("telegram") || link.url.includes("t.me")) {
-            profileSocials.push({
-              platform: "telegram",
-              handle: link.label ?? "telegram",
-              url: link.url,
-            });
-          } else if (type.includes("website") || link.url.startsWith("http")) {
-            profileWebsites.push(link.url);
-          }
-        }
-      }
-    }
-  } catch {
-    // Profile fetch is optional
-  }
-
   if (!pair) {
     return {
       market: null,
       symbol: "???",
       name: "Unknown",
-      imageUrl,
-      description,
-      socials: profileSocials,
-      websites: profileWebsites,
+      socials: [],
+      websites: [],
     };
   }
 
@@ -175,9 +121,9 @@ export async function fetchDexScreenerMarket(
     market,
     symbol: base?.symbol ?? "???",
     name: base?.name ?? "Unknown Token",
-    imageUrl: imageUrl ?? info?.imageUrl,
-    description,
-    socials: [...profileSocials, ...pairSocials],
-    websites: [...new Set([...profileWebsites, ...pairWebsites])],
+    imageUrl: info?.imageUrl,
+    description: undefined,
+    socials: pairSocials,
+    websites: pairWebsites,
   };
 }

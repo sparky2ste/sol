@@ -1,20 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import { analyzeToken, validateMintAddress } from "@/lib/oracle/analyze";
 import { getServerRpcUrl } from "@/lib/solana/rpc";
-import { getClientIp, rateLimit, rateLimitResponse } from "@/lib/rateLimit";
+import {
+  getClientIp,
+  rateLimitAnalysis,
+  rateLimitResponse,
+} from "@/lib/rateLimit";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
-let cache = new Map<string, { data: unknown; expiresAt: number }>();
+const cache = new Map<string, { data: unknown; expiresAt: number }>();
 
 export async function GET(request: NextRequest) {
-  const ip = getClientIp(request);
-  const limited = rateLimit(`oracle:${ip}`, 15, 60_000);
-  if (!limited.ok) {
-    return rateLimitResponse(limited.retryAfterSec);
-  }
-
   const mint = request.nextUrl.searchParams.get("mint")?.trim();
 
   if (!mint) {
@@ -31,6 +29,15 @@ export async function GET(request: NextRequest) {
     );
   }
 
+  const cacheKey = mint.toLowerCase();
+  const now = Date.now();
+  const hit = cache.get(cacheKey);
+  if (hit && hit.expiresAt > now) {
+    return NextResponse.json(hit.data, {
+      headers: { "Cache-Control": "public, max-age=120" },
+    });
+  }
+
   if (!getServerRpcUrl()) {
     return NextResponse.json(
       {
@@ -41,13 +48,13 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  const cacheKey = mint.toLowerCase();
-  const now = Date.now();
-  const hit = cache.get(cacheKey);
-  if (hit && hit.expiresAt > now) {
-    return NextResponse.json(hit.data, {
-      headers: { "Cache-Control": "public, max-age=120" },
-    });
+  const ip = getClientIp(request);
+  const rateKey =
+    ip === "unknown" ? `oracle:mint:${cacheKey}` : `oracle:${ip}`;
+  const limit = ip === "unknown" ? 8 : 30;
+  const limited = rateLimitAnalysis(rateKey, limit, 60_000);
+  if (!limited.ok) {
+    return rateLimitResponse(limited.retryAfterSec);
   }
 
   try {
