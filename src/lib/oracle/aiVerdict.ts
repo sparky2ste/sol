@@ -298,7 +298,8 @@ function buildTokenContext(input: AiVerdictInput): string {
         holderCountEstimate: input.holderCountEstimate,
         bundlerCount: input.bundlerCount,
         sniperHoldPercent: Math.round(sniperPct * 10) / 10,
-        bundlerSignals: input.bundlerSignals.slice(0, 12),
+        walletsScanned: 50,
+        bundlerSignals: input.bundlerSignals.slice(0, 20),
         topHolders: input.topHolders.slice(0, 10).map((h) => ({
           percent: h.percent,
           tags: h.tags,

@@ -1,8 +1,16 @@
 import { Connection, PublicKey } from "@solana/web3.js";
 import { getMint, TOKEN_2022_PROGRAM_ID } from "@solana/spl-token";
 import { TOKEN_PROGRAM_ID } from "@/lib/solana/constants";
+import { fetchHeliusHoldersByMint } from "./fetchHeliusHolders";
 import { withRpcRetry } from "./rpcRetry";
 import type { OracleBundlerSignal, OracleHolderWallet } from "./types";
+
+const TOP_WALLET_SCAN = 50;
+const MAX_BUNDLER_SIGNALS = 20;
+const MAX_SIG_CHECKS = 18;
+const LOW_SOL_LAMPORTS = 100_000_000;
+const SNIPER_SOL_LAMPORTS = 50_000_000;
+const EARLY_BUY_WINDOW_MS = 20 * 60 * 1000;
 
 const LP_PROGRAM_HINTS = new Set([
   "675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8",
@@ -18,16 +26,75 @@ const KNOWN_LP_LABELS: Record<string, string> = {
   "whirLbMiicVdio4qvUfM5KAg6Ct8VwpYzGff3uctyCc": "Orca LP",
 };
 
-function clusterByExactAmount(
-  holders: { uiAmount: number }[]
-): Map<number, number> {
-  const clusters = new Map<number, number>();
-  for (const h of holders) {
-    if (h.uiAmount <= 0) continue;
-    const key = Math.round(h.uiAmount * 1_000_000) / 1_000_000;
-    clusters.set(key, (clusters.get(key) ?? 0) + 1);
+interface WalletRow {
+  address: string;
+  amount: number;
+  uiAmount: number;
+  percent: number;
+}
+
+function amountClusterKey(uiAmount: number): string {
+  if (uiAmount >= 1_000_000) return uiAmount.toFixed(0);
+  if (uiAmount >= 10_000) return uiAmount.toFixed(1);
+  if (uiAmount >= 100) return uiAmount.toFixed(2);
+  if (uiAmount >= 1) return uiAmount.toFixed(4);
+  return uiAmount.toFixed(6);
+}
+
+function isLpOwner(owner: string, pairAddress: string | null): string | null {
+  if (pairAddress && owner === pairAddress) return "LP Pool";
+  if (KNOWN_LP_LABELS[owner]) return KNOWN_LP_LABELS[owner];
+  if (LP_PROGRAM_HINTS.has(owner)) return "AMM Pool";
+  return null;
+}
+
+function detectBundlerClusters(
+  wallets: WalletRow[]
+): Map<string, { reason: string; clusterSize: number }> {
+  const flags = new Map<string, { reason: string; clusterSize: number }>();
+  const groups = new Map<string, WalletRow[]>();
+
+  for (const w of wallets) {
+    if (w.percent < 0.08) continue;
+    const key = amountClusterKey(w.uiAmount);
+    const group = groups.get(key) ?? [];
+    group.push(w);
+    groups.set(key, group);
   }
-  return clusters;
+
+  for (const [key, group] of groups) {
+    if (group.length < 3) continue;
+    const clusterPct = group.reduce((s, w) => s + w.percent, 0);
+    const reason = `Bundler cluster: ${group.length} wallets hold identical ~${key} tokens (~${clusterPct.toFixed(1)}% combined).`;
+    for (const w of group) {
+      flags.set(w.address, { reason, clusterSize: group.length });
+    }
+  }
+
+  const sorted = [...wallets].sort((a, b) => a.uiAmount - b.uiAmount);
+  for (let i = 0; i < sorted.length; i++) {
+    const base = sorted[i];
+    if (base.percent < 0.15) continue;
+    const near: WalletRow[] = [base];
+    for (let j = i + 1; j < sorted.length; j++) {
+      const other = sorted[j];
+      if (other.uiAmount > base.uiAmount * 1.03) break;
+      if (Math.abs(other.uiAmount - base.uiAmount) / base.uiAmount <= 0.02) {
+        near.push(other);
+      }
+    }
+    if (near.length >= 3) {
+      const clusterPct = near.reduce((s, w) => s + w.percent, 0);
+      const reason = `Bundler cluster: ${near.length} wallets with matching buy size (~${clusterPct.toFixed(1)}% combined).`;
+      for (const w of near) {
+        if (!flags.has(w.address)) {
+          flags.set(w.address, { reason, clusterSize: near.length });
+        }
+      }
+    }
+  }
+
+  return flags;
 }
 
 async function getMintProgramId(
@@ -51,6 +118,72 @@ async function getMintProgramId(
   );
 }
 
+async function mergeTopHolders(
+  connection: Connection,
+  mint: PublicKey,
+  supply: number,
+  decimals: number
+): Promise<{ wallets: WalletRow[]; holderCountEstimate: number }> {
+  const byOwner = new Map<string, number>();
+
+  const [largest, helius] = await Promise.all([
+    withRpcRetry(() => connection.getTokenLargestAccounts(mint, "confirmed")),
+    fetchHeliusHoldersByMint(mint.toBase58(), decimals).catch(() => ({
+      holders: [] as { owner: string; amount: number; uiAmount: number }[],
+      totalAccounts: 0,
+    })),
+  ]);
+
+  const largestEntries = largest.value.filter(
+    (e) => e.address && e.amount != null
+  );
+  const tokenAccountPubkeys = largestEntries.map((e) => e.address!);
+  const accountInfos = tokenAccountPubkeys.length
+    ? await withRpcRetry(() =>
+        connection.getMultipleAccountsInfo(tokenAccountPubkeys, "confirmed")
+      )
+    : [];
+
+  largestEntries.forEach((entry, i) => {
+    const amount = Number(entry.amount);
+    if (amount <= 0) return;
+
+    let owner = entry.address!.toBase58();
+    const data = accountInfos[i]?.data;
+    if (data && data.length >= 64) {
+      try {
+        owner = new PublicKey(data.subarray(32, 64)).toBase58();
+      } catch {
+        // Keep token account address
+      }
+    }
+
+    byOwner.set(owner, Math.max(byOwner.get(owner) ?? 0, amount));
+  });
+
+  for (const h of helius.holders) {
+    byOwner.set(h.owner, Math.max(byOwner.get(h.owner) ?? 0, h.amount));
+  }
+
+  const wallets = [...byOwner.entries()]
+    .map(([address, amount]) => ({
+      address,
+      amount,
+      uiAmount: amount / 10 ** decimals,
+      percent: supply > 0 ? (amount / supply) * 100 : 0,
+    }))
+    .sort((a, b) => b.amount - a.amount)
+    .slice(0, TOP_WALLET_SCAN);
+
+  const holderCountEstimate = Math.max(
+    helius.totalAccounts,
+    helius.holders.length,
+    largest.value.length
+  );
+
+  return { wallets, holderCountEstimate };
+}
+
 export async function fetchOnChainHolderAnalysis(
   connection: Connection,
   mintAddress: string,
@@ -71,188 +204,165 @@ export async function fetchOnChainHolderAnalysis(
 }> {
   const mint = new PublicKey(mintAddress);
   const programId = await getMintProgramId(connection, mint);
-  const [mintInfo, largest] = await Promise.all([
-    withRpcRetry(() => getMint(connection, mint, "confirmed", programId)),
-    withRpcRetry(() =>
-      connection.getTokenLargestAccounts(mint, "confirmed")
-    ),
-  ]);
+  const mintInfo = await withRpcRetry(() =>
+    getMint(connection, mint, "confirmed", programId)
+  );
 
   const mintAuthority = mintInfo.mintAuthority?.toBase58() ?? null;
   const freezeAuthority = mintInfo.freezeAuthority?.toBase58() ?? null;
   const mintRenounced = mintAuthority === null;
   const freezeRenounced = freezeAuthority === null;
   const supply = Number(mintInfo.supply);
+  const decimals = mintInfo.decimals;
 
-  const tokenAccountPubkeys = largest.value
-    .filter((e) => e.address && e.uiAmount != null)
-    .map((e) => e.address!)
-    .slice(0, 12);
+  const { wallets, holderCountEstimate } = await mergeTopHolders(
+    connection,
+    mint,
+    supply,
+    decimals
+  );
 
-  const accountInfos = tokenAccountPubkeys.length
-    ? await withRpcRetry(() =>
-        connection.getMultipleAccountsInfo(tokenAccountPubkeys, "confirmed")
-      )
-    : [];
-
-  const rawHolders: {
-    address: string;
-    amount: number;
-    uiAmount: number;
-    owner: string;
-  }[] = [];
-
-  largest.value.slice(0, 12).forEach((entry, i) => {
-    if (!entry.address || entry.uiAmount == null) return;
-
-    let owner = entry.address.toBase58();
-    const data = accountInfos[i]?.data;
-    if (data && data.length >= 64) {
-      try {
-        owner = new PublicKey(data.subarray(32, 64)).toBase58();
-      } catch {
-        // Keep token account address as fallback
-      }
-    }
-
-    rawHolders.push({
-      address: owner,
-      amount: Number(entry.amount),
-      uiAmount: entry.uiAmount,
-      owner,
-    });
-  });
-
-  const holderCountEstimate = Math.max(rawHolders.length, largest.value.length);
+  const walletRows: WalletRow[] = [];
   const topHolders: OracleHolderWallet[] = [];
   let lpHoldPercent = 0;
   let devHoldPercent = 0;
-  let botLikePercent = 0;
-  const bundlerSignals: OracleBundlerSignal[] = [];
-  const walletHolders: { address: string; uiAmount: number; percent: number }[] =
-    [];
 
-  for (const h of rawHolders) {
-    const percent = supply > 0 ? (h.amount / supply) * 100 : 0;
+  for (const w of wallets) {
+    const lpTag = isLpOwner(w.address, pairAddress);
     const tags: string[] = [];
 
-    if (pairAddress && h.owner === pairAddress) {
-      tags.push("LP Pool");
-      lpHoldPercent += percent;
-    } else if (KNOWN_LP_LABELS[h.owner]) {
-      tags.push(KNOWN_LP_LABELS[h.owner]);
-      lpHoldPercent += percent;
-    } else if (LP_PROGRAM_HINTS.has(h.owner)) {
-      tags.push("AMM Pool");
-      lpHoldPercent += percent;
+    if (lpTag) {
+      tags.push(lpTag);
+      lpHoldPercent += w.percent;
     } else {
-      walletHolders.push({
-        address: h.address,
-        uiAmount: h.uiAmount,
-        percent,
-      });
+      walletRows.push(w);
     }
 
-    if (mintAuthority && h.address === mintAuthority) {
+    if (mintAuthority && w.address === mintAuthority) {
       tags.push("Mint Authority");
-      devHoldPercent += percent;
+      devHoldPercent += w.percent;
     }
 
     topHolders.push({
-      address: h.address,
-      percent,
-      uiAmount: h.uiAmount,
+      address: w.address,
+      percent: w.percent,
+      uiAmount: w.uiAmount,
       tags,
     });
   }
 
-  for (const [, count] of clusterByExactAmount(walletHolders)) {
-    if (count >= 3) {
-      botLikePercent += (count / Math.max(walletHolders.length, 1)) * 15;
-    }
+  const clusterFlags = detectBundlerClusters(walletRows);
+  const bundlerSignals: OracleBundlerSignal[] = [];
+  const flaggedAddresses = new Set<string>();
+
+  for (const [address, meta] of clusterFlags) {
+    const w = walletRows.find((row) => row.address === address);
+    if (!w) continue;
+    bundlerSignals.push({
+      address,
+      percent: w.percent,
+      reason: meta.reason,
+    });
+    flaggedAddresses.add(address);
+  }
+
+  let botLikePercent = 0;
+  for (const [, meta] of clusterFlags) {
+    botLikePercent += meta.clusterSize * 2;
   }
   botLikePercent = Math.min(100, botLikePercent);
 
-  const top10Percent = rawHolders
-    .slice(0, 10)
-    .reduce((sum, h) => sum + (supply > 0 ? (h.amount / supply) * 100 : 0), 0);
-
-  const bundlerCandidates = walletHolders
-    .filter((w) => w.percent >= 0.25)
-    .sort((a, b) => b.percent - a.percent)
-    .slice(0, 8);
-
-  if (bundlerCandidates.length > 0) {
-    const balances = await connection.getMultipleAccountsInfo(
-      bundlerCandidates.map((w) => new PublicKey(w.address)),
-      "confirmed"
+  const solCheckTargets = walletRows;
+  const balanceResults: number[] = [];
+  for (let i = 0; i < solCheckTargets.length; i += 25) {
+    const chunk = solCheckTargets
+      .slice(i, i + 25)
+      .map((w) => new PublicKey(w.address));
+    const infos = await withRpcRetry(() =>
+      connection.getMultipleAccountsInfo(chunk, "confirmed")
     );
+    for (const info of infos) {
+      balanceResults.push(info?.lamports ?? 0);
+    }
+  }
 
-    const sigCheckLimit = Math.min(5, bundlerCandidates.length);
+  const sigCandidates: { wallet: WalletRow; score: number }[] = [];
 
-    for (let i = 0; i < bundlerCandidates.length; i++) {
-      const wallet = bundlerCandidates[i];
-      const solBalance = balances[i]?.lamports ?? 0;
-      const tags: string[] = [];
-      let isSniper = false;
+  solCheckTargets.forEach((wallet, index) => {
+    const solBalance = balanceResults[index] ?? 0;
+    const holder = topHolders.find((h) => h.address === wallet.address);
+    if (!holder) return;
 
-      if (solBalance < 80_000_000 && wallet.percent >= 0.4) {
-        tags.push("Low SOL wallet");
-        botLikePercent = Math.min(100, botLikePercent + wallet.percent * 0.35);
-      }
+    if (solBalance < LOW_SOL_LAMPORTS && wallet.percent >= 0.25) {
+      holder.tags.push("Low SOL");
+      botLikePercent = Math.min(100, botLikePercent + wallet.percent * 0.25);
+      sigCandidates.push({
+        wallet,
+        score: wallet.percent + (solBalance < SNIPER_SOL_LAMPORTS ? 5 : 2),
+      });
+    }
 
-      if (i < sigCheckLimit && pairCreatedAt && wallet.percent >= 0.5) {
-        try {
-          const sigs = await connection.getSignaturesForAddress(
-            new PublicKey(wallet.address),
-            { limit: 3 }
-          );
-          const oldest = sigs[sigs.length - 1]?.blockTime;
-          if (
-            oldest &&
-            oldest * 1000 < pairCreatedAt + 15 * 60 * 1000
-          ) {
-            tags.push("Early buyer");
-            isSniper = true;
-            bundlerSignals.push({
-              address: wallet.address,
-              percent: wallet.percent,
-              reason:
-                "Bought within ~15 min of pool creation. Sniper/bundler.",
-            });
-          }
-        } catch {
-          // Skip signature lookup failures
-        }
-      }
+    if (
+      solBalance < SNIPER_SOL_LAMPORTS &&
+      wallet.percent >= 0.8 &&
+      !flaggedAddresses.has(wallet.address)
+    ) {
+      holder.tags.push("Sniper wallet");
+      bundlerSignals.push({
+        address: wallet.address,
+        percent: wallet.percent,
+        reason: "Low SOL wallet holding a large bag. Typical sniper/bundler.",
+      });
+      flaggedAddresses.add(wallet.address);
+    }
 
-      if (
-        !isSniper &&
-        solBalance < 30_000_000 &&
-        wallet.percent >= 1.5 &&
-        pairCreatedAt
-      ) {
-        tags.push("Likely sniper");
+    if (clusterFlags.has(wallet.address)) {
+      holder.tags.push("Bundler");
+    }
+  });
+
+  sigCandidates.sort((a, b) => b.score - a.score);
+  let sigChecks = 0;
+
+  for (const candidate of sigCandidates) {
+    if (sigChecks >= MAX_SIG_CHECKS) break;
+    if (!pairCreatedAt || candidate.wallet.percent < 0.2) continue;
+    if (flaggedAddresses.has(candidate.wallet.address)) continue;
+
+    try {
+      const sigs = await connection.getSignaturesForAddress(
+        new PublicKey(candidate.wallet.address),
+        { limit: 5 }
+      );
+      sigChecks += 1;
+      const oldest = sigs[sigs.length - 1]?.blockTime;
+      if (oldest && oldest * 1000 < pairCreatedAt + EARLY_BUY_WINDOW_MS) {
+        const holder = topHolders.find(
+          (h) => h.address === candidate.wallet.address
+        );
+        holder?.tags.push("Early buyer");
         bundlerSignals.push({
-          address: wallet.address,
-          percent: wallet.percent,
-          reason: "Fresh wallet with low SOL holding a large bag.",
+          address: candidate.wallet.address,
+          percent: candidate.wallet.percent,
+          reason: "Bought within ~20 min of pool launch. Sniper/bundler.",
         });
+        flaggedAddresses.add(candidate.wallet.address);
       }
-
-      const holder = topHolders.find((t) => t.address === wallet.address);
-      if (holder) holder.tags.push(...tags);
+    } catch {
+      // Skip failed signature lookups
     }
   }
 
   if (devHoldPercent === 0 && mintAuthority) {
-    for (const w of walletHolders) {
-      if (w.address === mintAuthority) {
-        devHoldPercent = w.percent;
-        break;
-      }
-    }
+    const devWallet = walletRows.find((w) => w.address === mintAuthority);
+    if (devWallet) devHoldPercent = devWallet.percent;
   }
+
+  const top10Percent = wallets
+    .slice(0, 10)
+    .reduce((sum, w) => sum + w.percent, 0);
+
+  bundlerSignals.sort((a, b) => b.percent - a.percent);
 
   return {
     mintAuthority,
@@ -260,11 +370,11 @@ export async function fetchOnChainHolderAnalysis(
     mintRenounced,
     freezeRenounced,
     holderCountEstimate,
-    topHolders: topHolders.slice(0, 12),
+    topHolders: topHolders.slice(0, 15),
     top10Percent,
     devHoldPercent,
     lpHoldPercent,
     botLikePercent: Math.round(botLikePercent * 10) / 10,
-    bundlerSignals: bundlerSignals.slice(0, 6),
+    bundlerSignals: bundlerSignals.slice(0, MAX_BUNDLER_SIGNALS),
   };
 }

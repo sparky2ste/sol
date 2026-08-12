@@ -143,7 +143,7 @@ export function OracleModule() {
       {loading && (
         <div className="glass-card flex flex-col items-center py-16">
           <div className="mb-4 h-12 w-12 animate-spin rounded-full border-2 border-violet-500/30 border-t-violet-400" />
-          <p className={ui.muted}>Reading chain data, then running AI analysis…</p>
+          <p className={ui.muted}>Scanning top 50 wallets, then running AI analysis…</p>
           <p className="mt-2 text-xs text-zinc-600">Usually takes 10 to 30 seconds</p>
         </div>
       )}
