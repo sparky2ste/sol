@@ -6,6 +6,7 @@ import { ConnectWallet } from "@/components/ConnectWallet";
 import { Mascot } from "@/components/Mascot";
 import { TurnstileWidget } from "@/components/TurnstileWidget";
 import { BurnModule } from "@/components/BurnModule";
+import { SuccessCelebration } from "@/components/SuccessCelebration";
 import type { ScanResult } from "@/lib/solana/scanEmptyAccounts";
 import { scanWalletViaApi } from "@/lib/solana/scanWalletApi";
 import {
@@ -35,7 +36,10 @@ export function WalletCleaner() {
   } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string[] | null>(null);
+  const [success, setSuccess] = useState<{
+    signatures: string[];
+    amountLamports: number;
+  } | null>(null);
   const [rpcConfigured, setRpcConfigured] = useState<boolean | null>(null);
   const [walletBalance, setWalletBalance] = useState<number | null>(null);
   const [tab, setTab] = useState<"reclaim" | "burn">("reclaim");
@@ -137,7 +141,10 @@ export function WalletCleaner() {
         signAllTransactions ?? undefined
       );
 
-      setSuccess(signatures);
+      setSuccess({
+        signatures,
+        amountLamports: summary?.youReceiveLamports ?? 0,
+      });
       setTurnstileResetKey((key) => key + 1);
     } catch (err) {
       if (isWalletUserRejection(err)) {
@@ -238,7 +245,14 @@ export function WalletCleaner() {
 
       {error && <Alert type="error" message={error} />}
       {notice && <Alert type="info" message={notice} />}
-      {success && <SuccessAlert signatures={success} />}
+      {success && (
+        <SuccessCelebration
+          kind="reclaim"
+          signatures={success.signatures}
+          amountLamports={success.amountLamports}
+          onDismiss={() => setSuccess(null)}
+        />
+      )}
 
       {walletBalance !== null &&
         walletBalance < WALLET_RENT_RESERVE_LAMPORTS &&
@@ -412,30 +426,6 @@ function Alert({ type, message }: { type: "error" | "info"; message: string }) {
         <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
       </svg>
       {message}
-    </div>
-  );
-}
-
-function SuccessAlert({ signatures }: { signatures: string[] }) {
-  return (
-    <div className="rounded-xl border border-brand-400/25 bg-brand-400/8 p-4 text-sm space-y-2">
-      <div className="flex items-center gap-2 text-brand-400 font-semibold">
-        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-        </svg>
-        SOL reclaimed successfully
-      </div>
-      {signatures.map((sig) => (
-        <a
-          key={sig}
-          href={`https://solscan.io/tx/${sig}`}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="block font-mono text-xs text-surface-muted hover:text-brand-400 transition-colors"
-        >
-          View on Solscan → {truncateAddress(sig, 8)}
-        </a>
-      ))}
     </div>
   );
 }

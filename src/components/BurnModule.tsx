@@ -18,6 +18,7 @@ import {
   getFeeWallet,
   truncateAddress,
 } from "@/lib/solana/constants";
+import { SuccessCelebration } from "@/components/SuccessCelebration";
 import { ui } from "@/lib/ui";
 
 interface BurnModuleProps {
@@ -46,7 +47,10 @@ export function BurnModule({
   );
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string[] | null>(null);
+  const [success, setSuccess] = useState<{
+    signatures: string[];
+    amountLamports: number;
+  } | null>(null);
 
   const burnable = scanResult.burnableAccounts;
   const walletKey = scanResult.wallet.toBase58();
@@ -113,7 +117,12 @@ export function BurnModule({
         signAllTransactions ?? undefined
       );
 
-      setSuccess(signatures);
+      const receivedLamports = summary?.youReceiveLamports ?? 0;
+
+      setSuccess({
+        signatures,
+        amountLamports: receivedLamports,
+      });
       setSelected(new Set());
       onRescan();
     } catch (err) {
@@ -137,6 +146,7 @@ export function BurnModule({
     feeWallet,
     connection,
     onRescan,
+    summary,
   ]);
 
   if (burnable.length === 0) {
@@ -197,7 +207,14 @@ export function BurnModule({
 
       {error && <Alert type="error" message={error} />}
       {notice && <Alert type="info" message={notice} />}
-      {success && <SuccessAlert signatures={success} />}
+      {success && (
+        <SuccessCelebration
+          kind="burn"
+          signatures={success.signatures}
+          amountLamports={success.amountLamports}
+          onDismiss={() => setSuccess(null)}
+        />
+      )}
 
       {summary && selected.size > 0 && (
         <div className={`${ui.card} space-y-2 p-4 text-sm`}>
@@ -418,24 +435,5 @@ function Alert({ type, message }: { type: "error" | "info"; message: string }) {
 
   return (
     <div className={`rounded-xl border p-4 text-sm ${styles}`}>{message}</div>
-  );
-}
-
-function SuccessAlert({ signatures }: { signatures: string[] }) {
-  return (
-    <div className="rounded-xl border border-[#14F195]/30 bg-[#14F195]/10 p-4 text-sm">
-      <p className="font-semibold text-[#14F195]">Burn complete</p>
-      {signatures.map((sig) => (
-        <a
-          key={sig}
-          href={`https://solscan.io/tx/${sig}`}
-          target="_blank"
-          rel="noopener noreferrer"
-          className={`mt-1 block font-mono text-xs hover:text-[#14F195] ${ui.muted}`}
-        >
-          {truncateAddress(sig, 8)} on Solscan
-        </a>
-      ))}
-    </div>
   );
 }
