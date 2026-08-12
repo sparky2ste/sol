@@ -7,11 +7,14 @@ import {
 import { fetchDexScreenerMarket } from "./fetchMarket";
 import { fetchOnChainHolderAnalysis } from "./fetchOnChain";
 import { buildSocialMentions, generateOracleVerdict } from "./generateVerdict";
+import { withRpcRetry } from "./rpcRetry";
 import type { OracleReport } from "./types";
 
 async function assertTokenMint(connection: Connection, mint: string): Promise<void> {
   const pubkey = new PublicKey(mint);
-  const info = await connection.getAccountInfo(pubkey, "confirmed");
+  const info = await withRpcRetry(() =>
+    connection.getAccountInfo(pubkey, "confirmed")
+  );
 
   if (!info) {
     throw new Error("Address not found on Solana mainnet.");

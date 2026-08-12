@@ -11,7 +11,6 @@ import {
 } from "@/components/Sections";
 import { WalletCleaner } from "@/components/WalletCleaner";
 import { AdSenseUnit } from "@/components/AdSenseUnit";
-import { CommunityGoals } from "@/components/CommunityGoals";
 import { ui } from "@/lib/ui";
 
 export default function Home() {
@@ -41,10 +40,6 @@ export default function Home() {
               <WalletCleaner />
             </div>
           </section>
-        </AnimateIn>
-
-        <AnimateIn delay={100}>
-          <CommunityGoals className="pb-12" compact showHeader />
         </AnimateIn>
 
         <AnimateIn delay={150}>

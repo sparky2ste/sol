@@ -1,7 +1,6 @@
 "use client";
 
 import { Mascot } from "@/components/Mascot";
-import { HomeStats } from "@/components/HomeStats";
 import { WalletIcon } from "@/components/WalletIcon";
 import { WALLET_OPTIONS } from "@/lib/wallets";
 import { ui } from "@/lib/ui";
@@ -50,7 +49,7 @@ export function Hero() {
             {FEATURES.map((feature) => (
               <span
                 key={feature}
-                className="rounded-full border border-zinc-800 bg-zinc-900/50 px-3 py-1 text-xs text-zinc-400"
+                className="rounded-full border border-zinc-800 bg-zinc-900/50 px-3 py-1 text-xs text-zinc-400 transition-colors duration-200 hover:border-[#14F195]/30 hover:text-zinc-200"
               >
                 {feature}
               </span>
@@ -58,9 +57,12 @@ export function Hero() {
           </div>
 
           <div className="animate-fade-in-up mb-8 flex flex-col items-center gap-3 sm:flex-row lg:justify-start [animation-delay:320ms]">
-            <a href="#tool" className={`${ui.btnPrimary} group relative min-w-[180px] overflow-hidden`}>
+            <a
+              href="#tool"
+              className={`${ui.btnPrimary} glow-brand group relative min-w-[180px] overflow-hidden`}
+            >
               <span className="relative z-10">Start reclaiming</span>
-              <span className="absolute inset-0 -translate-x-full animate-shimmer bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+              <span className="absolute inset-0 -translate-x-full animate-shimmer bg-gradient-to-r from-transparent via-white/25 to-transparent" />
             </a>
             <a href="/leaderboard" className={ui.btnSecondary}>
               View leaderboard
@@ -75,7 +77,7 @@ export function Hero() {
               {WALLET_OPTIONS.map((wallet) => (
                 <div
                   key={wallet.name}
-                  className="flex items-center gap-2 rounded-lg border border-zinc-800/80 bg-zinc-900/40 px-2.5 py-1.5"
+                  className="flex items-center gap-2 rounded-lg border border-zinc-800/80 bg-zinc-900/40 px-2.5 py-1.5 transition-all duration-200 hover:-translate-y-0.5 hover:border-zinc-600 hover:bg-zinc-900/70"
                   title={wallet.label}
                 >
                   <WalletIcon wallet={wallet.name} className="h-5 w-5 rounded-md" />
@@ -84,16 +86,12 @@ export function Hero() {
               ))}
             </div>
           </div>
-
-          <div className="animate-fade-in-up [animation-delay:480ms]">
-            <HomeStats />
-          </div>
         </div>
 
         <div className="relative flex justify-center lg:justify-end">
           <div className="animate-float relative">
-            <div className="absolute inset-0 scale-90 rounded-full bg-[#14F195]/15 blur-3xl" />
-            <div className="relative rounded-3xl border border-zinc-800/60 bg-zinc-900/30 p-6 shadow-2xl shadow-black/40 backdrop-blur-sm ring-1 ring-[#14F195]/10">
+            <div className="absolute inset-0 scale-90 rounded-full bg-[#14F195]/15 blur-3xl animate-pulse-glow" />
+            <div className="ring-conic relative rounded-3xl border border-zinc-800/60 bg-zinc-900/30 p-6 shadow-2xl shadow-black/40 backdrop-blur-sm">
               <Mascot size="hero" priority />
             </div>
           </div>

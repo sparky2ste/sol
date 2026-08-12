@@ -1,5 +1,6 @@
 import { Connection, PublicKey } from "@solana/web3.js";
 import { getMint } from "@solana/spl-token";
+import { withRpcRetry } from "./rpcRetry";
 import type { OracleBundlerSignal, OracleHolderWallet } from "./types";
 
 const LP_PROGRAM_HINTS = new Set([
@@ -48,8 +49,10 @@ export async function fetchOnChainHolderAnalysis(
 }> {
   const mint = new PublicKey(mintAddress);
   const [mintInfo, largest] = await Promise.all([
-    getMint(connection, mint, "confirmed"),
-    connection.getTokenLargestAccounts(mint, "confirmed"),
+    withRpcRetry(() => getMint(connection, mint, "confirmed")),
+    withRpcRetry(() =>
+      connection.getTokenLargestAccounts(mint, "confirmed")
+    ),
   ]);
 
   const mintAuthority = mintInfo.mintAuthority?.toBase58() ?? null;

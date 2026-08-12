@@ -19,6 +19,29 @@
     background: rgba(20, 241, 149, 0.22);
     color: #fff;
   }
+
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: #0b0c14;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #27272a;
+    border-radius: 8px;
+    border: 2px solid #0b0c14;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #3f3f46;
+  }
+
+  :focus-visible {
+    outline: 2px solid rgba(20, 241, 149, 0.55);
+    outline-offset: 2px;
+    border-radius: 6px;
+  }
 }
 
 @layer utilities {
@@ -30,6 +53,106 @@
 
   .glass-card {
     @apply rounded-2xl border border-zinc-800/70 bg-zinc-900/45 shadow-xl shadow-black/20 backdrop-blur-md ring-1 ring-white/[0.04];
+    transition:
+      border-color 0.3s ease,
+      box-shadow 0.3s ease,
+      transform 0.3s ease;
+  }
+
+  /* Card that lifts + glows on hover */
+  .card-lift:hover {
+    transform: translateY(-4px);
+    border-color: rgba(20, 241, 149, 0.25);
+    box-shadow:
+      0 12px 40px -12px rgba(0, 0, 0, 0.6),
+      0 0 24px -6px rgba(20, 241, 149, 0.12);
+  }
+
+  /* Gradient hairline on top edge of a card */
+  .card-topline {
+    position: relative;
+  }
+  .card-topline::before {
+    content: "";
+    position: absolute;
+    inset: 0 12% auto 12%;
+    height: 1px;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(20, 241, 149, 0.5),
+      transparent
+    );
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+  .card-topline:hover::before {
+    opacity: 1;
+  }
+
+  /* Soft brand glow for CTAs */
+  .glow-brand {
+    box-shadow:
+      0 0 0 1px rgba(20, 241, 149, 0.25),
+      0 8px 32px -8px rgba(20, 241, 149, 0.45);
+  }
+  .glow-brand:hover {
+    box-shadow:
+      0 0 0 1px rgba(20, 241, 149, 0.4),
+      0 10px 44px -6px rgba(20, 241, 149, 0.6);
+  }
+
+  /* Conic gradient ring (mascot / avatars) */
+  .ring-conic {
+    position: relative;
+  }
+  .ring-conic::before {
+    content: "";
+    position: absolute;
+    inset: -1px;
+    border-radius: inherit;
+    padding: 1px;
+    background: conic-gradient(
+      from var(--ring-angle, 0deg),
+      transparent 0%,
+      rgba(20, 241, 149, 0.6) 12%,
+      transparent 30%,
+      transparent 55%,
+      rgba(153, 69, 255, 0.5) 70%,
+      transparent 88%
+    );
+    -webkit-mask:
+      linear-gradient(#fff 0 0) content-box,
+      linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    animation: ringSpin 6s linear infinite;
+    pointer-events: none;
+  }
+
+  /* Smooth expand/collapse (FAQ) */
+  .expandable {
+    display: grid;
+    grid-template-rows: 0fr;
+    transition: grid-template-rows 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .expandable.open {
+    grid-template-rows: 1fr;
+  }
+  .expandable > div {
+    overflow: hidden;
+  }
+}
+
+@property --ring-angle {
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: false;
+}
+
+@keyframes ringSpin {
+  to {
+    --ring-angle: 360deg;
   }
 }
 
@@ -40,6 +163,16 @@
   }
   50% {
     background-position: 100% center;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }
 

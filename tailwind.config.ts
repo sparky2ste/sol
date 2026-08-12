@@ -33,11 +33,13 @@ const config: Config = {
       animation: {
         "fade-in": "fadeIn 0.4s ease-out forwards",
         "fade-in-up": "fadeInUp 0.6s ease-out forwards",
+        "scale-in": "scaleIn 0.45s cubic-bezier(0.16, 1, 0.3, 1) forwards",
         float: "float 5s ease-in-out infinite",
         shimmer: "shimmer 2.5s ease-in-out infinite",
         "pulse-glow": "pulseGlow 2s ease-in-out infinite",
         drift: "drift 18s ease-in-out infinite",
         "drift-reverse": "drift 22s ease-in-out infinite reverse",
+        aurora: "aurora 14s ease-in-out infinite alternate",
       },
       keyframes: {
         fadeIn: {
@@ -47,6 +49,10 @@ const config: Config = {
         fadeInUp: {
           "0%": { opacity: "0", transform: "translateY(8px)" },
           "100%": { opacity: "1", transform: "translateY(0)" },
+        },
+        scaleIn: {
+          "0%": { opacity: "0", transform: "scale(0.96) translateY(6px)" },
+          "100%": { opacity: "1", transform: "scale(1) translateY(0)" },
         },
         float: {
           "0%, 100%": { transform: "translateY(0)" },
@@ -64,6 +70,20 @@ const config: Config = {
           "0%, 100%": { transform: "translate(0, 0) scale(1)" },
           "33%": { transform: "translate(3%, 2%) scale(1.05)" },
           "66%": { transform: "translate(-2%, -1%) scale(0.98)" },
+        },
+        aurora: {
+          "0%": {
+            transform: "translateX(-8%) rotate(-2deg) scaleY(1)",
+            opacity: "0.55",
+          },
+          "50%": {
+            transform: "translateX(4%) rotate(1deg) scaleY(1.15)",
+            opacity: "0.85",
+          },
+          "100%": {
+            transform: "translateX(8%) rotate(-1deg) scaleY(0.95)",
+            opacity: "0.6",
+          },
         },
       },
     },

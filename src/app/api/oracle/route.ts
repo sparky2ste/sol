@@ -78,9 +78,13 @@ export async function GET(request: NextRequest) {
         : typeof err === "string"
           ? err
           : "Failed to analyze token. Check the CA is a token mint.";
+    const userError =
+      message.includes("not found") ||
+      message.includes("not a token mint") ||
+      message.includes("No DexScreener");
     return NextResponse.json(
       { error: "ORACLE_FAILED", message },
-      { status: 500 }
+      { status: userError ? 400 : 500 }
     );
   }
 }

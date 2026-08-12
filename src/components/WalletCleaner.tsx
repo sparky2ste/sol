@@ -6,7 +6,6 @@ import { ConnectWallet } from "@/components/ConnectWallet";
 import { Mascot } from "@/components/Mascot";
 import { TurnstileWidget } from "@/components/TurnstileWidget";
 import { BurnModule } from "@/components/BurnModule";
-import { CommunityGoals } from "@/components/CommunityGoals";
 import { SuccessCelebration } from "@/components/SuccessCelebration";
 import type { ScanResult } from "@/lib/solana/scanEmptyAccounts";
 import { scanWalletViaApi } from "@/lib/solana/scanWalletApi";
@@ -336,9 +335,6 @@ export function WalletCleaner() {
             </p>
           </div>
         )}
-
-      {tab === "reclaim" && <CommunityGoals kind="reclaim" />}
-      {tab === "burn" && <CommunityGoals kind="burn" />}
 
       {loading && !scanResult ? (
         <LoadingState />

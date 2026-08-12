@@ -32,16 +32,20 @@ export function Header() {
               <Link
                 key={item.href}
                 href={item.href}
-                className={`relative text-sm transition-colors ${
+                className={`group relative text-sm transition-colors ${
                   active
                     ? "font-medium text-zinc-50"
                     : "text-zinc-500 hover:text-zinc-200"
                 }`}
               >
                 {item.label}
-                {active && (
-                  <span className="absolute -bottom-[17px] left-0 right-0 h-px bg-[#14F195]/60" />
-                )}
+                <span
+                  className={`absolute -bottom-[17px] left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#14F195] to-transparent transition-all duration-300 ${
+                    active
+                      ? "opacity-100 shadow-[0_0_8px_rgba(20,241,149,0.6)]"
+                      : "opacity-0 group-hover:opacity-40"
+                  }`}
+                />
               </Link>
             );
           })}

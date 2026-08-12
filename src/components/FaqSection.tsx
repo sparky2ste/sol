@@ -7,7 +7,7 @@ import { ui } from "@/lib/ui";
 const FAQS = [
   {
     q: "Do you ever ask for my seed phrase or private key?",
-    a: `Never. ${BRAND.fullName} only connects through Phantom or Solflare. You approve each transaction in your wallet.`,
+    a: `Never. ${BRAND.fullName} only connects through your wallet app — Phantom, Solflare, Coinbase Wallet, or Trust. You approve each transaction in your wallet.`,
   },
   {
     q: `Is ${BRAND.fullName} safe to use?`,
@@ -27,7 +27,7 @@ const FAQS = [
   },
   {
     q: "Which wallets are supported?",
-    a: "Phantom and Solflare on desktop and mobile.",
+    a: "Phantom, Solflare, Coinbase Wallet, and Trust — on desktop and mobile.",
   },
 ];
 
@@ -41,37 +41,54 @@ export function FaqSection() {
       </div>
 
       <div className="space-y-2">
-        {FAQS.map((faq, i) => (
-          <div key={faq.q} className={`${ui.card} overflow-hidden`}>
-            <button
-              type="button"
-              onClick={() => setOpen(open === i ? null : i)}
-              className="flex w-full items-center justify-between gap-4 p-4 text-left text-sm"
+        {FAQS.map((faq, i) => {
+          const isOpen = open === i;
+          return (
+            <div
+              key={faq.q}
+              className={`${ui.card} overflow-hidden transition-colors duration-300 ${
+                isOpen ? "border-[#14F195]/20 bg-zinc-900/70" : "hover:border-zinc-700"
+              }`}
             >
-              <span className="font-medium">{faq.q}</span>
-              <svg
-                className={`h-4 w-4 shrink-0 text-zinc-500 transition-transform duration-200 ${
-                  open === i ? "rotate-180" : ""
-                }`}
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={2}
+              <button
+                type="button"
+                onClick={() => setOpen(isOpen ? null : i)}
+                className="flex w-full items-center justify-between gap-4 p-4 text-left text-sm"
+                aria-expanded={isOpen}
               >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M19 9l-7 7-7-7"
-                />
-              </svg>
-            </button>
-            {open === i && (
-              <div className="-mt-1 px-4 pb-4">
-                <p className={`text-sm leading-relaxed ${ui.muted}`}>{faq.a}</p>
+                <span
+                  className={`font-medium transition-colors duration-200 ${
+                    isOpen ? "text-zinc-50" : "text-zinc-300"
+                  }`}
+                >
+                  {faq.q}
+                </span>
+                <svg
+                  className={`h-4 w-4 shrink-0 transition-all duration-300 ${
+                    isOpen ? "rotate-180 text-[#14F195]" : "text-zinc-500"
+                  }`}
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M19 9l-7 7-7-7"
+                  />
+                </svg>
+              </button>
+              <div className={`expandable ${isOpen ? "open" : ""}`}>
+                <div>
+                  <p className={`px-4 pb-4 text-sm leading-relaxed ${ui.muted}`}>
+                    {faq.a}
+                  </p>
+                </div>
               </div>
-            )}
-          </div>
-        ))}
+            </div>
+          );
+        })}
       </div>
     </section>
   );

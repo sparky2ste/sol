@@ -7,19 +7,16 @@ const STEPS = [
     num: "01",
     title: "Connect wallet",
     desc: "Phantom, Solflare, Coinbase Wallet, or Trust. Keys never leave your device.",
-    icon: "🔗",
   },
   {
     num: "02",
     title: "Scan accounts",
     desc: "We detect empty SPL accounts and junk tokens you can burn safely.",
-    icon: "🔍",
   },
   {
     num: "03",
     title: "Recover SOL",
     desc: "Review the breakdown, sign once, and receive your SOL instantly.",
-    icon: "⚡",
   },
 ];
 
@@ -34,18 +31,20 @@ export function HowItWorks() {
       </div>
 
       <div className="grid gap-4 sm:grid-cols-3 sm:gap-5">
-        {STEPS.map((step, i) => (
+        {STEPS.map((step) => (
           <div
             key={step.num}
-            className="glass-card group h-full p-6 transition-transform hover:-translate-y-1"
-            style={{ transitionDelay: `${i * 50}ms` }}
+            className="glass-card card-lift card-topline group relative h-full overflow-hidden p-6"
           >
-            <div className="mb-4 flex items-center justify-between">
-              <span className="text-2xl" aria-hidden="true">
-                {step.icon}
-              </span>
-              <span className="font-mono text-xs text-zinc-600">{step.num}</span>
-            </div>
+            <span
+              aria-hidden
+              className="pointer-events-none absolute -right-3 -top-5 font-display text-7xl font-bold text-white/[0.04] transition-colors duration-300 group-hover:text-[#14F195]/[0.08]"
+            >
+              {step.num}
+            </span>
+            <span className="mb-4 inline-flex h-8 w-8 items-center justify-center rounded-lg border border-[#14F195]/20 bg-[#14F195]/10 font-mono text-xs font-semibold text-[#14F195]">
+              {step.num}
+            </span>
             <h3 className="mb-2 font-display text-lg font-semibold">{step.title}</h3>
             <p className={`text-sm leading-relaxed ${ui.muted}`}>{step.desc}</p>
           </div>
@@ -78,9 +77,9 @@ function StatBlock({
   accent?: boolean;
 }) {
   return (
-    <div className="text-center sm:text-left">
+    <div className="group text-center transition-transform duration-200 hover:-translate-y-0.5 sm:text-left">
       <p
-        className={`font-display text-2xl font-bold sm:text-3xl ${
+        className={`font-display text-2xl font-bold tabular-nums sm:text-3xl ${
           accent ? ui.accent : "text-zinc-50"
         }`}
       >
@@ -113,8 +112,11 @@ export function SecuritySection() {
       <div className="glass-card p-6 sm:p-8">
         <ul className="grid gap-4 sm:grid-cols-2">
           {items.map((item) => (
-            <li key={item} className={`flex gap-3 text-sm ${ui.muted}`}>
-              <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#14F195]/10 text-xs text-[#14F195]">
+            <li
+              key={item}
+              className={`group flex gap-3 text-sm transition-colors duration-200 hover:text-zinc-300 ${ui.muted}`}
+            >
+              <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#14F195]/10 text-xs text-[#14F195] ring-1 ring-[#14F195]/20 transition-all duration-200 group-hover:bg-[#14F195]/20 group-hover:shadow-[0_0_12px_-2px_rgba(20,241,149,0.5)]">
                 ✓
               </span>
               {item}
@@ -128,7 +130,8 @@ export function SecuritySection() {
 
 export function Footer() {
   return (
-    <footer className="border-t border-zinc-800/60">
+    <footer className="relative border-t border-zinc-800/60">
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#14F195]/30 to-transparent" />
       <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6">
         <div className="flex flex-col items-center justify-between gap-6 sm:flex-row">
           <Logo size="sm" />
