@@ -4,6 +4,10 @@ import { useState } from "react";
 
 const FAQS = [
   {
+    q: "Do you ever ask for my seed phrase or private key?",
+    a: "Never. SOL Reclaim only connects through Phantom or Solflare. You approve each transaction in your wallet. If any site asks for a seed phrase while claiming to be us, it is a scam.",
+  },
+  {
     q: "Is SOL Reclaim safe to use?",
     a: "Yes. We only close empty SPL token accounts with zero balance. Your USDC, active tokens, and NFTs are never touched, burned, or sold. Every transaction requires your explicit wallet signature. We are fully non-custodial.",
   },

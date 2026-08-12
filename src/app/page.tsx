@@ -5,6 +5,7 @@ import {
   HowItWorks,
   ComparisonStrip,
   Footer,
+  SecuritySection,
 } from "@/components/Sections";
 import { WalletCleaner } from "@/components/WalletCleaner";
 
@@ -36,6 +37,7 @@ export default function Home() {
 
         <ComparisonStrip />
         <HowItWorks />
+        <SecuritySection />
         <FaqSection />
       </main>
 

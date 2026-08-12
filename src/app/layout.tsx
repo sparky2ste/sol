@@ -14,10 +14,24 @@ const spaceGrotesk = Space_Grotesk({
 });
 
 export const metadata: Metadata = {
-  title: "SOL Reclaim — Recover Locked SOL from Empty Token Accounts",
+  title: "SOL Reclaim | Close Empty Token Accounts",
   description:
-    "Professional non-custodial Solana wallet cleaner. Reclaim SOL locked in empty token accounts. 1% fee deducted from payout. Zero upfront cost.",
-  keywords: ["Solana", "wallet cleaner", "SOL reclaim", "memecoin", "rent recovery"],
+    "Non-custodial Solana utility to close empty SPL token accounts and recover rent. No seed phrase. You review and sign every transaction in Phantom or Solflare.",
+  keywords: [
+    "Solana",
+    "empty token accounts",
+    "rent recovery",
+    "wallet utility",
+    "SPL tokens",
+  ],
+  openGraph: {
+    title: "SOL Reclaim | Empty Token Account Cleaner",
+    description:
+      "Close vacant SPL accounts and recover locked SOL. Non-custodial. 1% fee on reclaimed rent only.",
+    type: "website",
+    siteName: "SOL Reclaim",
+  },
+  robots: { index: true, follow: true },
 };
 
 export const viewport = {

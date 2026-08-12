@@ -104,6 +104,66 @@ export function ComparisonStrip() {
   );
 }
 
+export function SecuritySection() {
+  const items = [
+    "Non-custodial: private keys stay in Phantom or Solflare",
+    "We never ask for a seed phrase, private key, or password",
+    "Only zero-balance token accounts can be closed",
+    "USDC and other funded accounts are skipped automatically",
+    "You review the exact transaction before signing",
+    "Open-source code on GitHub for public review",
+  ];
+
+  return (
+    <section id="security" className="py-16 sm:py-20">
+      <div className="text-center mb-10">
+        <p className="section-label mb-3">Security</p>
+        <h2 className="font-display text-3xl sm:text-4xl font-bold">
+          Built to avoid wallet drainer patterns
+        </h2>
+        <p className="text-surface-muted mt-4 max-w-2xl mx-auto text-sm sm:text-base">
+          SOL Reclaim is a rent-recovery utility, not an airdrop or giveaway. No
+          upfront payment. No account signup.
+        </p>
+      </div>
+
+      <div className="glass-card p-6 sm:p-8 max-w-3xl mx-auto">
+        <ul className="space-y-4">
+          {items.map((item) => (
+            <li key={item} className="flex gap-3 text-sm text-surface-muted">
+              <svg
+                className="w-5 h-5 text-brand-400 shrink-0 mt-0.5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
+                />
+              </svg>
+              <span>{item}</span>
+            </li>
+          ))}
+        </ul>
+        <p className="mt-6 pt-6 border-t border-white/[0.06] text-xs text-surface-muted text-center">
+          Source code:{" "}
+          <a
+            href="https://github.com/sparky2ste/sol"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-white/80 underline hover:text-white"
+          >
+            github.com/sparky2ste/sol
+          </a>
+        </p>
+      </div>
+    </section>
+  );
+}
+
 export function Footer() {
   return (
     <footer className="border-t border-white/[0.06] mt-8">
@@ -114,6 +174,22 @@ export function Footer() {
             Non-custodial wallet utility. Not financial advice. You review and
             sign every transaction. SOL Reclaim never asks for your seed phrase.
           </p>
+        </div>
+        <div className="mt-6 flex flex-wrap justify-center sm:justify-end gap-4 text-xs text-surface-muted">
+          <a
+            href="https://github.com/sparky2ste/sol"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hover:text-white transition-colors"
+          >
+            GitHub
+          </a>
+          <a href="#security" className="hover:text-white transition-colors">
+            Security
+          </a>
+          <a href="#faq" className="hover:text-white transition-colors">
+            FAQ
+          </a>
         </div>
         <div className="mt-8 pt-6 border-t border-white/[0.04] text-center text-xs text-surface-muted/60">
           © {new Date().getFullYear()} SOL Reclaim. Built on Solana.

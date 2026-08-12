@@ -1,59 +1,44 @@
 # Deploy SOL Reclaim (Cloudflare Workers)
 
-## 1. GitHub
+## GitHub
 
-Code lives at [github.com/sparky2ste/sol](https://github.com/sparky2ste/sol).
+[github.com/sparky2ste/sol](https://github.com/sparky2ste/sol)
 
-## 2. Cloudflare Workers (Pages)
+## Cloudflare build settings
 
-1. [Cloudflare Dashboard](https://dash.cloudflare.com) → **Workers & Pages** → connect **sparky2ste/sol**
-2. Framework: **Next.js** (auto-detected)
-3. **Build command:** `node scripts/cf-build.mjs`  
-   (Do **not** use `npm run build` alone on older commits.)
-4. **Deploy command:** `npx wrangler deploy`
+| Setting | Value |
+|---|---|
+| **Build command** | `npm run build` |
+| **Deploy command** | `npx wrangler deploy` |
 
-After each push, start a **new** deployment from `main` — do not click **Retry** on failed runs (those reuse old commits). In the deployment details, confirm the commit starts with `26ca8a3` or newer.
-5. Add **Environment variables** (Production):
+Or use full clean build: `node scripts/cf-build.mjs`
+
+**Environment variables:**
 
 | Name | Value |
-|------|--------|
-| `HELIUS_API_KEY` | Your key from [helius.dev](https://helius.dev) |
-| `NEXT_PUBLIC_FEE_WALLET` | Your Solana wallet address (receives 1% fees) |
+|---|---|
+| `HELIUS_API_KEY` | Your Helius key |
+| `NEXT_PUBLIC_FEE_WALLET` | Solana wallet for 1% fees |
 
-6. Deploy
+Turn off **build cache** if deploy fails with missing `.next/standalone` errors.
 
-Your site will be live at `https://sol.<your-subdomain>.workers.dev` until you add a custom domain.
+## Custom domain flagged as phishing?
 
-## 3. Custom domain (Cloudflare)
+New crypto domains are often false positives. Request review:
 
-Workers & Pages → your project → **Custom domains** → add your domain. DNS stays in Cloudflare.
+- [Google Safe Browsing report](https://safebrowsing.google.com/safebrowsing/report_error/)
+- [VirusTotal contact](https://www.virustotal.com/gui/contact-us)
 
-## 4. After deploy — checklist
+Use your `.workers.dev` URL while waiting (2–7 days).
 
-- [ ] Connect wallet on the **live URL** (not localhost)
-- [ ] Scan finds empty accounts
-- [ ] Claim transaction succeeds and SOL arrives in wallet
-- [ ] 1% fee lands in `NEXT_PUBLIC_FEE_WALLET`
-- [ ] Test on mobile: **Open in Phantom** → connect → claim
-- [ ] Enable **2FA** on GitHub and Cloudflare
-- [ ] Rotate Helius key if it was ever shared publicly
-
-## 5. Local development
+## Local dev
 
 ```bash
 cp .env.example .env.local
-# Edit .env.local with your keys
 npm install
 npm run dev
 ```
 
-If you see cache errors: `npm run dev:clean`
+Open [http://localhost:3000](http://localhost:3000)
 
-Preview in the Workers runtime locally: `npm run preview`
-
-## Security notes
-
-- Users never send seed phrases; all txs are signed in their wallet
-- `HELIUS_API_KEY` stays server-side only
-- API routes have basic rate limiting
-- Never commit `.env.local`
+If cache errors: `npm run dev:clean`

@@ -16,6 +16,9 @@ export function Header() {
           <a href="#how-it-works" className="hover:text-white transition-colors">
             How it works
           </a>
+          <a href="#security" className="hover:text-white transition-colors">
+            Security
+          </a>
           <a href="#faq" className="hover:text-white transition-colors">
             FAQ
           </a>

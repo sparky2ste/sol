@@ -1,0 +1,8 @@
+Contact: mailto:security@solreclaim.app
+Preferred-Languages: en
+Canonical: https://solreclaim.app/.well-known/security.txt
+Policy: https://solreclaim.app/#security
+
+# SOL Reclaim is a non-custodial wallet utility.
+# We never ask for seed phrases or private keys.
+# Source: https://github.com/sparky2ste/sol

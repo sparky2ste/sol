@@ -1,26 +1,37 @@
 const TRUST_ITEMS = [
   { label: "Non-custodial", desc: "Keys stay in your wallet" },
-  { label: "1% fee", desc: "Half of Sol Incinerator" },
-  { label: "Zero upfront", desc: "Pay only on success" },
+  { label: "No seed phrase", desc: "We never ask for secrets" },
+  { label: "1% fee", desc: "Only on reclaimed rent" },
   { label: "Empty accounts only", desc: "No tokens burned or sold" },
 ];
+
+const GITHUB_URL = "https://github.com/sparky2ste/sol";
 
 export function Hero() {
   return (
     <section className="text-center pt-12 pb-8 sm:pt-16 sm:pb-10 animate-fade-in">
       <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-white/[0.08] bg-surface-overlay/60 text-xs text-surface-muted mb-6">
         <span className="w-1.5 h-1.5 rounded-full bg-brand-400" />
-        Trusted Solana wallet cleaner
+        Non-custodial ·{" "}
+        <a
+          href={GITHUB_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-white/80 underline hover:text-white"
+        >
+          Open source
+        </a>
       </div>
 
       <h1 className="font-display text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight mb-5 leading-[1.1]">
-        Reclaim SOL locked
+        Close empty token accounts,
         <br />
-        <span className="gradient-text">in empty accounts</span>
+        <span className="gradient-text">recover locked rent</span>
       </h1>
 
       <p className="text-surface-muted text-lg sm:text-xl max-w-2xl mx-auto mb-8 leading-relaxed">
-        Claim free SOL from vacant token accounts, like{" "}
+        Vacant SPL and Token-2022 accounts hold about 0.002 SOL each in rent.
+        This tool closes zero-balance accounts only, similar to{" "}
         <a
           href="https://sol-incinerator.com/"
           target="_blank"
@@ -29,8 +40,10 @@ export function Hero() {
         >
           Sol Incinerator
         </a>
-        , but at half the fee. Connect your wallet and recover locked rent.{" "}
-        <span className="text-white font-medium">1% fee</span> taken from your payout.
+        . Connect Phantom or Solflare, review the transaction, and sign in your
+        wallet.{" "}
+        <span className="text-white font-medium">1% platform fee</span> on
+        reclaimed SOL.
       </p>
 
       <div className="flex flex-wrap justify-center gap-3 sm:gap-4">
