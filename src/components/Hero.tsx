@@ -5,22 +5,12 @@ const TRUST_ITEMS = [
   { label: "Empty accounts only", desc: "No tokens burned or sold" },
 ];
 
-const GITHUB_URL = "https://github.com/sparky2ste/sol";
-
 export function Hero() {
   return (
     <section className="text-center pt-12 pb-8 sm:pt-16 sm:pb-10 animate-fade-in">
       <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-white/[0.08] bg-surface-overlay/60 text-xs text-surface-muted mb-6">
         <span className="w-1.5 h-1.5 rounded-full bg-brand-400" />
-        Non-custodial ·{" "}
-        <a
-          href={GITHUB_URL}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-white/80 underline hover:text-white"
-        >
-          Open source
-        </a>
+        Non-custodial wallet utility
       </div>
 
       <h1 className="font-display text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight mb-5 leading-[1.1]">

@@ -33,7 +33,7 @@ const FAQS = [
   },
   {
     q: "Do I need an API key to use this site?",
-    a: "No. Connect your wallet and scan — nothing to install or configure. The site operator runs the infrastructure; you only sign transactions in your wallet.",
+    a: "No. Connect your wallet and scan. Nothing to install or configure. The site operator runs the infrastructure; you only sign transactions in your wallet.",
   },
 ];
 

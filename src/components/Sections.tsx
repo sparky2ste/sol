@@ -111,7 +111,6 @@ export function SecuritySection() {
     "Only zero-balance token accounts can be closed",
     "USDC and other funded accounts are skipped automatically",
     "You review the exact transaction before signing",
-    "Open-source code on GitHub for public review",
   ];
 
   return (
@@ -148,17 +147,6 @@ export function SecuritySection() {
             </li>
           ))}
         </ul>
-        <p className="mt-6 pt-6 border-t border-white/[0.06] text-xs text-surface-muted text-center">
-          Source code:{" "}
-          <a
-            href="https://github.com/sparky2ste/sol"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-white/80 underline hover:text-white"
-          >
-            github.com/sparky2ste/sol
-          </a>
-        </p>
       </div>
     </section>
   );
@@ -176,14 +164,6 @@ export function Footer() {
           </p>
         </div>
         <div className="mt-6 flex flex-wrap justify-center sm:justify-end gap-4 text-xs text-surface-muted">
-          <a
-            href="https://github.com/sparky2ste/sol"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="hover:text-white transition-colors"
-          >
-            GitHub
-          </a>
           <a href="#security" className="hover:text-white transition-colors">
             Security
           </a>
