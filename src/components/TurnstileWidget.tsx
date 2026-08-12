@@ -4,7 +4,7 @@ import Script from "next/script";
 import { useCallback, useEffect, useRef } from "react";
 import {
   TURNSTILE_ACTION_SCAN,
-  TURNSTILE_SITE_KEY,
+  getTurnstileSiteKey,
 } from "@/lib/turnstile/config";
 
 type TurnstileWidgetId = string;
@@ -72,8 +72,10 @@ export function TurnstileWidget({
 
     removeWidget();
 
+    const sitekey = getTurnstileSiteKey(window.location.hostname);
+
     widgetIdRef.current = turnstile.render(container, {
-      sitekey: TURNSTILE_SITE_KEY,
+      sitekey,
       action: TURNSTILE_ACTION_SCAN,
       callback: (token) => onTokenRef.current(token),
       "expired-callback": () => {

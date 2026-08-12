@@ -1,17 +1,19 @@
 import { createHmac, randomBytes, timingSafeEqual } from "crypto";
-import { getServerEnv } from "@/lib/solana/env";
+import { getTurnstileSecretForRequest } from "./config";
 
 export const VERIFICATION_SESSION_COOKIE = "sr_bot_ok";
 
 /** How long a browser can skip Turnstile after one successful check. */
 export const VERIFICATION_SESSION_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
-function getSessionSecret(): string | undefined {
-  return getServerEnv("TURNSTILE_SECRET");
+function getSessionSecret(requestHost: string): string | undefined {
+  return getTurnstileSecretForRequest(requestHost);
 }
 
-export function createVerificationSessionToken(): string | null {
-  const secret = getSessionSecret();
+export function createVerificationSessionToken(
+  requestHost: string
+): string | null {
+  const secret = getSessionSecret(requestHost);
   if (!secret) return null;
 
   const exp = Date.now() + VERIFICATION_SESSION_TTL_MS;
@@ -25,11 +27,12 @@ export function createVerificationSessionToken(): string | null {
 }
 
 export function isVerificationSessionValid(
-  token: string | null | undefined
+  token: string | null | undefined,
+  requestHost: string
 ): boolean {
   if (!token) return false;
 
-  const secret = getSessionSecret();
+  const secret = getSessionSecret(requestHost);
   if (!secret) return false;
 
   const parts = token.split(".");

@@ -19,15 +19,27 @@ import { verifyTurnstileToken } from "@/lib/turnstile/verify";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
+function getRequestHost(request: NextRequest): string {
+  return (
+    request.headers.get("x-forwarded-host") ??
+    request.headers.get("host") ??
+    "localhost"
+  )
+    .split(",")[0]
+    .trim()
+    .toLowerCase();
+}
+
 export async function GET(request: NextRequest) {
   const ip = getClientIp(request);
+  const requestHost = getRequestHost(request);
   const limited = rateLimit(`scan:${ip}`, 30, 60_000);
   if (!limited.ok) {
     return rateLimitResponse(limited.retryAfterSec);
   }
 
   const sessionToken = request.cookies.get(VERIFICATION_SESSION_COOKIE)?.value;
-  const hasValidSession = isVerificationSessionValid(sessionToken);
+  const hasValidSession = isVerificationSessionValid(sessionToken, requestHost);
   let issueSession = false;
 
   if (!hasValidSession) {
@@ -35,7 +47,8 @@ export async function GET(request: NextRequest) {
     const turnstile = await verifyTurnstileToken(
       turnstileToken,
       TURNSTILE_ACTION_SCAN,
-      ip
+      ip,
+      requestHost
     );
     if (!turnstile.ok) {
       return NextResponse.json(
@@ -122,7 +135,7 @@ export async function GET(request: NextRequest) {
     });
 
     if (issueSession) {
-      const token = createVerificationSessionToken();
+      const token = createVerificationSessionToken(requestHost);
       if (token) {
         response.cookies.set(verificationSessionCookieOptions(token));
       }

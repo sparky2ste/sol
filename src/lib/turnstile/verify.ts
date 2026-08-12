@@ -1,5 +1,8 @@
-import { getServerEnv } from "@/lib/solana/env";
-import { getTurnstileHostnames } from "./config";
+import {
+  getTurnstileHostnames,
+  getTurnstileSecretForRequest,
+  useTurnstileTestMode,
+} from "./config";
 
 interface SiteverifyResult {
   success?: boolean;
@@ -11,14 +14,15 @@ interface SiteverifyResult {
 export async function verifyTurnstileToken(
   token: string | null | undefined,
   expectedAction: string,
-  clientIp: string
+  clientIp: string,
+  requestHost: string
 ): Promise<{ ok: true } | { ok: false; message: string }> {
-  const secret = getServerEnv("TURNSTILE_SECRET");
+  const secret = getTurnstileSecretForRequest(requestHost);
   if (!secret) {
     return { ok: false, message: "Bot verification is not configured." };
   }
 
-  const expectedHostnames = getTurnstileHostnames();
+  const expectedHostnames = getTurnstileHostnames(requestHost);
   if (expectedHostnames.size === 0) {
     return { ok: false, message: "Bot verification is not configured." };
   }
@@ -52,9 +56,13 @@ export async function verifyTurnstileToken(
     return { ok: false, message: "Security check failed. Try again." };
   }
 
+  const actionOk =
+    useTurnstileTestMode(requestHost) ||
+    result.action === expectedAction;
+
   if (
     !result.success ||
-    result.action !== expectedAction ||
+    !actionOk ||
     !result.hostname ||
     !expectedHostnames.has(result.hostname)
   ) {
