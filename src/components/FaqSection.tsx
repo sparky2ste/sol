@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { AnimateIn } from "@/components/AnimateIn";
 import { BRAND } from "@/lib/brand";
 import { ui } from "@/lib/ui";
 
@@ -36,16 +37,19 @@ export function FaqSection() {
 
   return (
     <section id="faq" className="border-t border-zinc-800 py-16 sm:py-20">
-      <div className="mb-8">
-        <p className={`${ui.label} mb-2`}>FAQ</p>
-        <h2 className={`${ui.heading} text-2xl sm:text-3xl`}>
-          Common questions
-        </h2>
-      </div>
+      <AnimateIn>
+        <div className="mb-8">
+          <p className={`${ui.label} mb-2`}>FAQ</p>
+          <h2 className={`${ui.heading} text-2xl sm:text-3xl`}>
+            Common questions
+          </h2>
+        </div>
+      </AnimateIn>
 
       <div className="space-y-2">
         {FAQS.map((faq, i) => (
-          <div key={faq.q} className={`${ui.card} overflow-hidden`}>
+          <AnimateIn key={faq.q} delay={i * 60}>
+            <div className={`${ui.card} overflow-hidden`}>
             <button
               type="button"
               onClick={() => setOpen(open === i ? null : i)}
@@ -73,7 +77,8 @@ export function FaqSection() {
                 <p className={`text-sm leading-relaxed ${ui.muted}`}>{faq.a}</p>
               </div>
             )}
-          </div>
+            </div>
+          </AnimateIn>
         ))}
       </div>
     </section>

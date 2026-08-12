@@ -1,7 +1,7 @@
 export const ui = {
   page: "bg-zinc-950 text-zinc-50",
-  card: "rounded-2xl border border-zinc-800 bg-zinc-900",
-  cardPad: "rounded-2xl border border-zinc-800 bg-zinc-900 p-6",
+  card: "rounded-2xl border border-zinc-800 bg-zinc-900/80 shadow-card transition-colors duration-300 hover:border-zinc-700/80",
+  cardPad: "rounded-2xl border border-zinc-800 bg-zinc-900/80 p-6 shadow-card",
   label: "text-xs font-medium tracking-wide text-[#14F195]",
   btnPrimary:
     "inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl bg-[#14F195] px-5 py-2.5 text-sm font-semibold text-zinc-950 transition-colors hover:bg-[#0fd68a] active:bg-[#0bb574] disabled:cursor-not-allowed disabled:opacity-40",

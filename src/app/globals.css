@@ -12,6 +12,18 @@
     min-height: 100vh;
     min-height: 100dvh;
     -webkit-tap-highlight-color: transparent;
+    background-image:
+      radial-gradient(
+        ellipse 90% 60% at 50% -15%,
+        rgba(20, 241, 149, 0.09),
+        transparent 55%
+      ),
+      radial-gradient(
+        ellipse 50% 40% at 100% 0%,
+        rgba(20, 241, 149, 0.04),
+        transparent 50%
+      );
+    background-attachment: fixed;
   }
 
   ::selection {

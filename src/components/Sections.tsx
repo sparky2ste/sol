@@ -1,3 +1,4 @@
+import { AnimateIn } from "@/components/AnimateIn";
 import { Logo } from "@/components/Logo";
 import { BRAND } from "@/lib/brand";
 import { ui } from "@/lib/ui";
@@ -23,20 +24,24 @@ const STEPS = [
 export function HowItWorks() {
   return (
     <section id="how-it-works" className="border-t border-zinc-800 py-16 sm:py-20">
-      <div className="mb-10">
-        <p className={`${ui.label} mb-2`}>How it works</p>
-        <h2 className={`${ui.heading} text-2xl sm:text-3xl`}>Three steps</h2>
-      </div>
+      <AnimateIn>
+        <div className="mb-10">
+          <p className={`${ui.label} mb-2`}>How it works</p>
+          <h2 className={`${ui.heading} text-2xl sm:text-3xl`}>Three steps</h2>
+        </div>
+      </AnimateIn>
 
       <div className="grid gap-4 sm:grid-cols-3">
-        {STEPS.map((step) => (
-          <div key={step.num} className={`${ui.card} p-5`}>
-            <span className="mb-3 block font-mono text-xs text-[#14F195]">
-              {step.num}
-            </span>
-            <h3 className="mb-1.5 font-medium">{step.title}</h3>
-            <p className={`text-sm leading-relaxed ${ui.muted}`}>{step.desc}</p>
-          </div>
+        {STEPS.map((step, index) => (
+          <AnimateIn key={step.num} delay={index * 100}>
+            <div className={`${ui.card} h-full p-5`}>
+              <span className="mb-3 block font-mono text-xs text-[#14F195]">
+                {step.num}
+              </span>
+              <h3 className="mb-1.5 font-medium">{step.title}</h3>
+              <p className={`text-sm leading-relaxed ${ui.muted}`}>{step.desc}</p>
+            </div>
+          </AnimateIn>
         ))}
       </div>
     </section>
@@ -47,14 +52,18 @@ export function ComparisonStrip() {
   return (
     <section className="border-t border-zinc-800 py-12">
       <div className="grid grid-cols-2 gap-4">
-        <div className={`${ui.card} p-6 text-center`}>
-          <p className={`${ui.heading} text-3xl text-[#14F195]`}>1%</p>
-          <p className={`mt-1 text-sm ${ui.muted}`}>Platform fee</p>
-        </div>
-        <div className={`${ui.card} p-6 text-center`}>
-          <p className={`${ui.heading} text-3xl`}>$0</p>
-          <p className={`mt-1 text-sm ${ui.muted}`}>Upfront cost</p>
-        </div>
+        <AnimateIn>
+          <div className={`${ui.card} p-6 text-center`}>
+            <p className={`${ui.heading} text-3xl text-[#14F195]`}>1%</p>
+            <p className={`mt-1 text-sm ${ui.muted}`}>Platform fee</p>
+          </div>
+        </AnimateIn>
+        <AnimateIn delay={100}>
+          <div className={`${ui.card} p-6 text-center`}>
+            <p className={`${ui.heading} text-3xl`}>$0</p>
+            <p className={`mt-1 text-sm ${ui.muted}`}>Upfront cost</p>
+          </div>
+        </AnimateIn>
       </div>
     </section>
   );
@@ -71,13 +80,16 @@ export function SecuritySection() {
 
   return (
     <section id="security" className="border-t border-zinc-800 py-16 sm:py-20">
-      <div className="mb-8">
-        <p className={`${ui.label} mb-2`}>Security</p>
-        <h2 className={`${ui.heading} text-2xl sm:text-3xl`}>
-          Non-custodial by design
-        </h2>
-      </div>
+      <AnimateIn>
+        <div className="mb-8">
+          <p className={`${ui.label} mb-2`}>Security</p>
+          <h2 className={`${ui.heading} text-2xl sm:text-3xl`}>
+            Non-custodial by design
+          </h2>
+        </div>
+      </AnimateIn>
 
+      <AnimateIn delay={100}>
       <div className={`${ui.card} p-6 sm:p-8`}>
         <ul className="space-y-3">
           {items.map((item) => (
@@ -100,6 +112,7 @@ export function SecuritySection() {
           ))}
         </ul>
       </div>
+      </AnimateIn>
     </section>
   );
 }

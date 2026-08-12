@@ -221,7 +221,6 @@ export function WalletCleaner() {
           disabled={loading || !rpcConfigured}
           className={`${ui.btnSecondary} disabled:opacity-40`}
         >
-        >
           {loading ? (
             <>
               <Spinner />
