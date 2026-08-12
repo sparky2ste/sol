@@ -24,6 +24,10 @@
   "observability": {
     "enabled": true
   },
+  "routes": [
+    { "pattern": "solreclaim.app", "custom_domain": true },
+    { "pattern": "www.solreclaim.app", "custom_domain": true }
+  ],
   "vars": {
     "NEXT_PUBLIC_FEE_WALLET": "8SHY8J3gy6L9aaZzmQdR4JJTgZXBH3ArkJVWKw1ES9eH",
     "HELIUS_API_KEY": "c4a45bb6-7735-4e45-a309-9a4502ad5c6d",
