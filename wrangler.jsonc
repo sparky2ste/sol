@@ -24,6 +24,9 @@
   "observability": {
     "enabled": true
   },
+  "secrets": {
+    "required": ["HELIUS_API_KEY"]
+  },
   "vars": {
     "NEXT_PUBLIC_FEE_WALLET": "8SHY8J3gy6L9aaZzmQdR4JJTgZXBH3ArkJVWKw1ES9eH"
   }
