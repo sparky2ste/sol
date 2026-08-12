@@ -213,7 +213,7 @@ export async function fetchOnChainHolderAnalysis(
               address: wallet.address,
               percent: wallet.percent,
               reason:
-                "Bought within ~10 min of pool creation — possible sniper/bundler",
+                "Bought within ~10 min of pool creation. Possible sniper/bundler.",
             });
           }
         } catch {

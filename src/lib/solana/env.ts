@@ -7,9 +7,9 @@ function readFromProcessEnv(name: string): string | undefined {
 
 function readFromCloudflareEnv(name: string): string | undefined {
   try {
-    const value = (getCloudflareContext().env as Record<string, string | undefined>)[
-      name
-    ]?.trim();
+    const value = (
+      getCloudflareContext().env as unknown as Record<string, string | undefined>
+    )[name]?.trim();
     return value || undefined;
   } catch {
     return undefined;

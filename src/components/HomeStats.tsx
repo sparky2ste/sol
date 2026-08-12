@@ -19,7 +19,10 @@ export function HomeStats() {
     async function load() {
       try {
         const res = await fetch("/api/community-goals");
-        const data = await res.json();
+        const data = (await res.json()) as {
+          reclaim?: { totalLamports?: number; activityCount?: number };
+          burn?: { totalLamports?: number; activityCount?: number };
+        };
         if (cancelled) return;
         setStats({
           totalReclaimSol: lamportsToSol(data.reclaim?.totalLamports ?? 0, 1),

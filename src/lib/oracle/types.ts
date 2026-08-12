@@ -44,6 +44,7 @@ export interface OracleVerdict {
     midUsd: number;
     highUsd: number;
     horizon: string;
+    trend: "bearish" | "neutral" | "bullish";
   };
 }
 

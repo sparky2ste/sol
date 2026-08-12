@@ -6,7 +6,8 @@ import {
 } from "@/lib/solana/constants";
 import { fetchDexScreenerMarket } from "./fetchMarket";
 import { fetchOnChainHolderAnalysis } from "./fetchOnChain";
-import { buildSocialMentions, generateOracleVerdict } from "./generateVerdict";
+import { generateAiVerdict } from "./aiVerdict";
+import { buildSocialMentions } from "./generateVerdict";
 import { parseMintInput } from "./parseMint";
 import { withRpcRetry } from "./rpcRetry";
 import type { OracleReport } from "./types";
@@ -67,7 +68,7 @@ export async function analyzeToken(rawInput: string): Promise<OracleReport> {
     dex.websites
   );
 
-  const { signals, risks, opportunities, verdict } = generateOracleVerdict({
+  const { signals, risks, opportunities, verdict } = await generateAiVerdict({
     mint,
     symbol: dex.symbol,
     name: dex.name,
@@ -81,6 +82,9 @@ export async function analyzeToken(rawInput: string): Promise<OracleReport> {
     lpHoldPercent: onChain.lpHoldPercent,
     botLikePercent: onChain.botLikePercent,
     bundlerCount: onChain.bundlerSignals.length,
+    bundlerSignals: onChain.bundlerSignals,
+    topHolders: onChain.topHolders,
+    holderCountEstimate: onChain.holderCountEstimate,
     socialMentions,
     websites: dex.websites,
   });
@@ -109,7 +113,7 @@ export async function analyzeToken(rawInput: string): Promise<OracleReport> {
     signals,
     verdict,
     disclaimer:
-      "Oracle output is algorithmic speculation for entertainment. Not financial advice. DYOR — memecoins can go to zero.",
+      "Oracle output is AI-generated speculation for entertainment. Not financial advice. DYOR. Memecoins can go to zero.",
     analyzedAt: Date.now(),
   };
 }

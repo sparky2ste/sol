@@ -33,7 +33,7 @@ export function CommunityGoals({
       try {
         const res = await fetch("/api/community-goals");
         const json = await res.json();
-        if (!cancelled) setData(json);
+        if (!cancelled) setData(json as CommunityGoalsData);
       } catch {
         if (!cancelled) setData(null);
       } finally {

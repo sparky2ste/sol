@@ -61,7 +61,9 @@ export function WalletCleaner() {
   useEffect(() => {
     fetch("/api/status")
       .then((r) => r.json())
-      .then((d) => setRpcConfigured(d.rpcConfigured))
+      .then((d) =>
+        setRpcConfigured(!!(d as { rpcConfigured?: boolean }).rpcConfigured)
+      )
       .catch(() => setRpcConfigured(false));
   }, []);
 

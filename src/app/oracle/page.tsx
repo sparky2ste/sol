@@ -23,15 +23,15 @@ export default function OraclePage() {
             Memecoin Oracle
           </div>
           <h1 className={`${ui.heading} text-3xl sm:text-4xl`}>
-            AI-style token{" "}
+            Memecoin{" "}
             <span className="bg-gradient-to-r from-violet-400 to-fuchsia-400 bg-clip-text text-transparent">
               read
             </span>
           </h1>
           <p className={`mx-auto mt-3 max-w-2xl text-sm leading-relaxed sm:mx-0 ${ui.muted}`}>
-            Drop a contract address. Oracle scans market data, top holders, dev
-            wallets, bot clusters, bundler patterns, and social links — then
-            outputs a confidence score, mcap range, and narrative verdict.
+            Drop a contract address. Oracle pulls on-chain data and market stats,
+            then an AI model reads the chart, holders, and narrative (Trump,
+            SpaceX, Ansem-style catalysts) for a straight take and mcap range.
           </p>
         </div>
 

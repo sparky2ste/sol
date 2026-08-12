@@ -32,7 +32,7 @@ try {
   // Optional: enables Cloudflare bindings during local dev (after npm install).
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   const { initOpenNextCloudflareForDev } = require("@opennextjs/cloudflare");
-  initOpenNextCloudflareForDev();
+  initOpenNextCloudflareForDev({ experimental: { remoteBindings: true } });
 } catch {
   // @opennextjs/cloudflare not installed yet. Safe to skip for local dev.
 }

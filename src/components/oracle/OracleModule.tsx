@@ -13,6 +13,13 @@ function formatUsd(n: number): string {
   return `$${Math.round(n).toLocaleString()}`;
 }
 
+function pctVsNow(target: number, current: number): string | undefined {
+  if (current <= 0) return undefined;
+  const pct = ((target - current) / current) * 100;
+  if (Math.abs(pct) < 2) return "flat vs now";
+  return `${pct > 0 ? "+" : ""}${pct.toFixed(0)}% vs now`;
+}
+
 const RATING_STYLE: Record<
   OracleReport["verdict"]["rating"],
   { label: string; className: string }
@@ -64,7 +71,7 @@ export function OracleModule() {
       try {
         data = await res.json();
       } catch {
-        throw new Error("Server error — try again in a moment.");
+        throw new Error("Server error. Try again in a moment.");
       }
 
       if (!res.ok) {
@@ -72,7 +79,7 @@ export function OracleModule() {
           const retry = res.headers.get("Retry-After");
           throw new Error(
             retry
-              ? `Rate limited — wait ${retry}s and try again.`
+              ? `Rate limited. Wait ${retry}s and try again.`
               : (data.message ?? "Too many requests. Wait a moment and retry.")
           );
         }
@@ -120,7 +127,7 @@ export function OracleModule() {
         </div>
         <p className={`mt-3 text-xs ${ui.muted}`}>
           Paste the <strong className="text-zinc-400">token mint (CA)</strong>,
-          a DexScreener link, or Solscan token URL — not your wallet address.
+          a DexScreener link, or Solscan token URL. Not your wallet address.
         </p>
       </form>
 
@@ -136,8 +143,8 @@ export function OracleModule() {
       {loading && (
         <div className="glass-card flex flex-col items-center py-16">
           <div className="mb-4 h-12 w-12 animate-spin rounded-full border-2 border-violet-500/30 border-t-violet-400" />
-          <p className={ui.muted}>Reading chain, holders, and market…</p>
-          <p className="mt-2 text-xs text-zinc-600">Usually takes 5–15 seconds</p>
+          <p className={ui.muted}>Reading chain data, then running AI analysis…</p>
+          <p className="mt-2 text-xs text-zinc-600">Usually takes 10 to 30 seconds</p>
         </div>
       )}
 
@@ -198,7 +205,7 @@ function OracleReportView({ report }: { report: OracleReport }) {
           <p className="mt-5 text-sm leading-relaxed text-zinc-300">
             {report.verdict.summary}
           </p>
-          <p className="mt-3 text-sm leading-relaxed text-zinc-400">
+          <p className="mt-3 whitespace-pre-line text-sm leading-relaxed text-zinc-400">
             {report.verdict.opinion}
           </p>
         </div>
@@ -225,29 +232,56 @@ function OracleReportView({ report }: { report: OracleReport }) {
       )}
 
       <div className="glass-card p-5 sm:p-6">
-        <h3 className="mb-4 font-display text-lg font-semibold">
-          Mcap prediction ({report.verdict.mcapPrediction.horizon})
-        </h3>
+        <div className="mb-4 flex flex-wrap items-center gap-2">
+          <h3 className="font-display text-lg font-semibold">
+            Mcap outlook ({report.verdict.mcapPrediction.horizon})
+          </h3>
+          {report.verdict.mcapPrediction.trend === "bearish" && (
+            <span className="rounded-full bg-red-500/15 px-2.5 py-0.5 text-xs font-medium text-red-300 ring-1 ring-red-500/30">
+              Trend down
+            </span>
+          )}
+          {report.verdict.mcapPrediction.trend === "bullish" && (
+            <span className="rounded-full bg-[#14F195]/15 px-2.5 py-0.5 text-xs font-medium text-[#14F195] ring-1 ring-[#14F195]/30">
+              Trend up
+            </span>
+          )}
+        </div>
         <div className="grid gap-3 sm:grid-cols-3">
           <PredictionCard
-            label="Floor"
+            label="Bear case"
             value={formatUsd(report.verdict.mcapPrediction.lowUsd)}
             tone="zinc"
+            sub={
+              report.market
+                ? pctVsNow(report.verdict.mcapPrediction.lowUsd, report.market.marketCapUsd)
+                : undefined
+            }
           />
           <PredictionCard
-            label="Base case"
+            label="Likely path"
             value={formatUsd(report.verdict.mcapPrediction.midUsd)}
             tone="violet"
+            sub={
+              report.market
+                ? pctVsNow(report.verdict.mcapPrediction.midUsd, report.market.marketCapUsd)
+                : undefined
+            }
           />
           <PredictionCard
-            label="Upside"
+            label="Bull case"
             value={formatUsd(report.verdict.mcapPrediction.highUsd)}
             tone="fuchsia"
+            sub={
+              report.market
+                ? pctVsNow(report.verdict.mcapPrediction.highUsd, report.market.marketCapUsd)
+                : undefined
+            }
           />
         </div>
-        <p className={`mt-3 text-xs ${ui.muted}`}>
-          Speculative model from liquidity, holders, momentum, and social signals
-          — not a guarantee.
+          <p className={`mt-3 text-xs ${ui.muted}`}>
+          AI-generated outlook from on-chain data, market stats, and narrative
+          context. Not a guarantee.
         </p>
       </div>
 
@@ -342,7 +376,7 @@ function OracleReportView({ report }: { report: OracleReport }) {
                     <td className="px-5 py-2.5">
                       <div className="flex flex-wrap gap-1">
                         {h.tags.length === 0 ? (
-                          <span className={ui.muted}>—</span>
+                          <span className={ui.muted}>none</span>
                         ) : (
                           h.tags.map((t) => (
                             <span
@@ -391,10 +425,12 @@ function PredictionCard({
   label,
   value,
   tone,
+  sub,
 }: {
   label: string;
   value: string;
   tone: "zinc" | "violet" | "fuchsia";
+  sub?: string;
 }) {
   const colors = {
     zinc: "border-zinc-700 text-zinc-300",
@@ -405,6 +441,7 @@ function PredictionCard({
     <div className={`rounded-xl border bg-zinc-950/40 p-4 ${colors[tone]}`}>
       <p className="text-xs text-zinc-500">{label}</p>
       <p className="font-display text-2xl font-bold tabular-nums">{value}</p>
+      {sub && <p className="mt-1 text-xs text-zinc-500">{sub}</p>}
     </div>
   );
 }

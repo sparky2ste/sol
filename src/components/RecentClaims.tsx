@@ -26,7 +26,7 @@ export function RecentClaims() {
     async function load() {
       try {
         const res = await fetch("/api/claims/recent?limit=10");
-        const data = await res.json();
+        const data = (await res.json()) as { claims?: Claim[] };
         if (!cancelled) setClaims(data.claims ?? []);
       } catch {
         if (!cancelled) setClaims([]);

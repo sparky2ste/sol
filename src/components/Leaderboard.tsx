@@ -67,7 +67,7 @@ export function Leaderboard() {
         const res = await fetch(
           `/api/claims/leaderboard?limit=25&period=${period}`
         );
-        const data = await res.json();
+        const data = (await res.json()) as { leaderboard?: typeof entries };
         if (!cancelled) setEntries(data.leaderboard ?? []);
       } catch {
         if (!cancelled) setEntries([]);
