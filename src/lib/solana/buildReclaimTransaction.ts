@@ -17,10 +17,11 @@ import { calculatePlatformFee, calculateAccountNetPayout } from "./constants";
 /** Solana packet size limit for legacy transactions */
 const MAX_TX_BYTES = 1232;
 /** Leave room for blockhash, signatures, and platform-fee transfer */
-const TX_SIZE_BUFFER = 200;
+const TX_SIZE_BUFFER_CLOSE = 120;
+const TX_SIZE_BUFFER_BURN = 180;
 
-/** ~0.00008 SOL per signature. Typical Solana network fee */
-export const ESTIMATED_NETWORK_FEE_LAMPORTS = 80_000;
+/** Solana base fee per signature (~0.000005 SOL) */
+export const ESTIMATED_NETWORK_FEE_LAMPORTS = 5_000;
 
 export const WALLET_RENT_RESERVE_LAMPORTS = 890_880;
 
@@ -103,16 +104,24 @@ async function refreshEmptyAccounts(
       }
 
       if (account.requiresBurn) {
-        const mintInfo = await getMint(
-          connection,
-          account.mint,
-          "confirmed",
-          account.programId
-        );
+        let decimals = account.decimals;
+        if (decimals === undefined) {
+          try {
+            const mintInfo = await getMint(
+              connection,
+              account.mint,
+              "confirmed",
+              account.programId
+            );
+            decimals = mintInfo.decimals;
+          } catch {
+            decimals = 0;
+          }
+        }
         stillEmpty.push({
           ...account,
           tokenAmount: onChain.amount.toString(),
-          decimals: mintInfo.decimals,
+          decimals,
           requiresBurn: true,
         });
       }
@@ -142,10 +151,16 @@ function estimateTxSize(tx: Transaction, feePayer: PublicKey): number {
   }
 }
 
-/** Pack as many close instructions as possible into each transaction. */
-function packAccountBatches(
+function isBurnAccount(account: EmptyTokenAccount): boolean {
+  if (!account.requiresBurn) return false;
+  const amount = account.tokenAmount ? BigInt(account.tokenAmount) : BigInt(0);
+  return amount > BigInt(0);
+}
+
+function packBatchGroup(
   accounts: EmptyTokenAccount[],
-  owner: PublicKey
+  owner: PublicKey,
+  sizeBuffer: number
 ): EmptyTokenAccount[][] {
   if (accounts.length === 0) return [];
 
@@ -162,7 +177,7 @@ function packAccountBatches(
       const ixBefore = tx.instructions.length;
       addCloseInstruction(tx, account, owner);
 
-      if (estimateTxSize(tx, owner) > MAX_TX_BYTES - TX_SIZE_BUFFER) {
+      if (estimateTxSize(tx, owner) > MAX_TX_BYTES - sizeBuffer) {
         tx.instructions.splice(ixBefore);
         break;
       }
@@ -181,6 +196,22 @@ function packAccountBatches(
   }
 
   return batches;
+}
+
+/** Pack close-only accounts densely; burn+close accounts in smaller batches. */
+function packAccountBatches(
+  accounts: EmptyTokenAccount[],
+  owner: PublicKey
+): EmptyTokenAccount[][] {
+  if (accounts.length === 0) return [];
+
+  const closeOnly = accounts.filter((account) => !isBurnAccount(account));
+  const burnAccounts = accounts.filter((account) => isBurnAccount(account));
+
+  return [
+    ...packBatchGroup(closeOnly, owner, TX_SIZE_BUFFER_CLOSE),
+    ...packBatchGroup(burnAccounts, owner, TX_SIZE_BUFFER_BURN),
+  ];
 }
 
 export function buildBatchBreakdowns(

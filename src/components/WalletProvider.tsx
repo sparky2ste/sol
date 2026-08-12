@@ -1,7 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
-import type { Adapter, WalletError } from "@solana/wallet-adapter-base";
+import { CoinbaseWalletAdapter } from "@solana/wallet-adapter-coinbase";
+import { TrustWalletAdapter } from "@solana/wallet-adapter-trust";
+import { PhantomWalletAdapter } from "@solana/wallet-adapter-phantom";
+import { SolflareWalletAdapter } from "@solana/wallet-adapter-solflare";
+import type { Adapter } from "@solana/wallet-adapter-base";
 import {
   WalletDisconnectedError,
   WalletNotConnectedError,
@@ -12,16 +15,21 @@ import {
   WalletProvider,
 } from "@solana/wallet-adapter-react";
 import { WalletModalProvider } from "@solana/wallet-adapter-react-ui";
-import { PhantomWalletAdapter } from "@solana/wallet-adapter-phantom";
-import { SolflareWalletAdapter } from "@solana/wallet-adapter-solflare";
 import {
   getInitialRpcUrl,
   getRpcUrl,
   PUBLIC_WS_RPC_URL,
 } from "@/lib/solana/constants";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import type { WalletError } from "@solana/wallet-adapter-base";
 
 function createWallets(): Adapter[] {
-  return [new PhantomWalletAdapter(), new SolflareWalletAdapter()];
+  return [
+    new PhantomWalletAdapter(),
+    new SolflareWalletAdapter(),
+    new CoinbaseWalletAdapter(),
+    new TrustWalletAdapter(),
+  ];
 }
 
 export function SolanaWalletProvider({
@@ -35,7 +43,6 @@ export function SolanaWalletProvider({
   const connectionConfig = useMemo<ConnectionConfig>(
     () => ({
       commitment: "confirmed",
-      // /api/rpc is HTTP-only. WebSocket must use a real wss endpoint
       wsEndpoint: PUBLIC_WS_RPC_URL,
     }),
     []

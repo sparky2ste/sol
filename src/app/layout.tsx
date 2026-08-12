@@ -20,7 +20,7 @@ const spaceGrotesk = Space_Grotesk({
 export const metadata: Metadata = {
   title: `${BRAND.fullName} | Close Empty Token Accounts`,
   description:
-    "Non-custodial Solana utility to close empty SPL token accounts and recover rent. No seed phrase. You review and sign every transaction in Phantom or Solflare.",
+    "Non-custodial Solana utility to close empty SPL token accounts and recover rent. Phantom, Solflare, Coinbase Wallet, and Trust supported.",
   openGraph: {
     title: `${BRAND.fullName} | Empty Token Account Cleaner`,
     description:

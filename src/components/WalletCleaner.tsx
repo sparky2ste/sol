@@ -22,6 +22,11 @@ import {
   getFeeWallet,
   truncateAddress,
 } from "@/lib/solana/constants";
+import {
+  getRecoverableBreakdown,
+  hasRecoverableSol,
+  type RecoverableBreakdown,
+} from "@/lib/solana/recoverableAccounts";
 import { ui } from "@/lib/ui";
 
 export function WalletCleaner() {
@@ -46,6 +51,7 @@ export function WalletCleaner() {
   const [tab, setTab] = useState<"reclaim" | "burn">("reclaim");
   const [needsTurnstile, setNeedsTurnstile] = useState(false);
   const [turnstileResetKey, setTurnstileResetKey] = useState(0);
+  const [burnAcknowledged, setBurnAcknowledged] = useState(false);
   const scanInFlightRef = useRef(false);
   const autoScannedWalletRef = useRef<string | null>(null);
   const isWorkersDev =
@@ -61,10 +67,15 @@ export function WalletCleaner() {
       .catch(() => setRpcConfigured(false));
   }, []);
 
+  const recoverable = useMemo(() => {
+    if (!scanResult) return null;
+    return getRecoverableBreakdown(scanResult, { includeBurnable: true });
+  }, [scanResult]);
+
   const summary = useMemo(() => {
-    if (!scanResult?.accounts.length || !publicKey) return null;
-    return buildReclaimSummary(scanResult.accounts, publicKey);
-  }, [scanResult, publicKey]);
+    if (!recoverable?.totalCount || !publicKey) return null;
+    return buildReclaimSummary(recoverable.allAccounts, publicKey);
+  }, [recoverable, publicKey]);
 
   const scanWallet = useCallback(
     async (turnstileToken?: string, options?: { keepSuccess?: boolean }) => {
@@ -84,6 +95,7 @@ export function WalletCleaner() {
           turnstileToken
         );
         setScanResult(result);
+        setBurnAcknowledged(false);
         setNeedsTurnstile(false);
         const balance = await connection.getBalance(publicKey, "confirmed");
         setWalletBalance(balance);
@@ -152,11 +164,16 @@ export function WalletCleaner() {
   }, [connected, publicKey, rpcConfigured, needsTurnstile, scanResult, scanWallet]);
 
   const handleClaim = async () => {
-    if (!publicKey || !signTransaction || !scanResult?.accounts.length) return;
+    if (!publicKey || !signTransaction || !recoverable?.totalCount) return;
+
+    if (recoverable.burnCount > 0 && !burnAcknowledged) {
+      setError("Confirm that junk tokens can be burned to recover this SOL.");
+      return;
+    }
 
     if (summary && summary.youReceiveLamports <= 0) {
       setError(
-        "Reclaim amount too small after fees are taken from your SOL. Need more empty accounts."
+        "Recoverable amount too small after fees. Try closing more accounts."
       );
       return;
     }
@@ -169,7 +186,7 @@ export function WalletCleaner() {
 
     try {
       const { transactions } = await buildReclaimTransactions(
-        scanResult.accounts,
+        recoverable.allAccounts,
         publicKey,
         feeWallet,
         connection
@@ -204,19 +221,16 @@ export function WalletCleaner() {
 
   if (!connected) {
     return (
-      <div className="py-8 text-center sm:py-10">
-        <Mascot size="md" className="mb-4" />
-        <h3 className="mb-2 font-display text-xl font-semibold">
+      <div className="py-10 text-center sm:py-12">
+        <Mascot size="md" className="mb-5" />
+        <h3 className="mb-2 font-display text-2xl font-semibold">
           Connect your wallet
         </h3>
-        <p className={`mx-auto mb-8 max-w-sm text-sm ${ui.muted}`}>
-          Link Phantom or Solflare to scan for empty accounts.
+        <p className={`mx-auto mb-8 max-w-md text-sm leading-relaxed ${ui.muted}`}>
+          Pick Phantom, Solflare, Coinbase Wallet, or Trust — then scan for
+          empty accounts and junk tokens.
         </p>
-        <ConnectWallet layout="stack" />
-        <p className={`mx-auto mt-6 max-w-sm text-xs leading-relaxed ${ui.muted}`}>
-          On mobile, tap <strong className="text-zinc-400">Open in Phantom</strong>{" "}
-          to use the in-app browser. We never ask for your seed phrase.
-        </p>
+        <ConnectWallet layout="grid" />
       </div>
     );
   }
@@ -309,7 +323,8 @@ export function WalletCleaner() {
       {walletBalance !== null &&
         walletBalance < WALLET_RENT_RESERVE_LAMPORTS &&
         scanResult &&
-        scanResult.accounts.length > 0 &&
+        recoverable &&
+        recoverable.totalCount > 0 &&
         summary &&
         summary.youReceiveLamports > 0 && (
           <div className="flex items-start gap-3 rounded-xl border border-blue-500/25 bg-blue-500/8 p-4 text-sm text-blue-200/90">
@@ -338,41 +353,47 @@ export function WalletCleaner() {
         ) : (
         <>
           <UnclaimedSolCard
-            scanResult={scanResult}
+            recoverable={recoverable}
             summary={summary}
             loading={loading}
             onRescan={requestRescan}
             rpcConfigured={!!rpcConfigured}
           />
 
-          {scanResult.accounts.length === 0 ? (
-            <>
-              {scanResult.burnableAccounts.length > 0 ? (
-                <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-5 text-center text-sm">
-                  <p className="font-medium">No empty accounts</p>
-                  <p className={`mt-1 ${ui.muted}`}>
-                    You have {scanResult.burnableAccounts.length} token account
-                    {scanResult.burnableAccounts.length === 1 ? "" : "s"} that
-                    can be burned on the Burn tab.
-                  </p>
-                  <button
-                    type="button"
-                    onClick={() => setTab("burn")}
-                    className={`${ui.btnSecondary} mt-4`}
-                  >
-                    Go to Burn
-                  </button>
-                </div>
-              ) : scanResult.protectedAccounts.length === 0 &&
-                scanResult.skippedAccounts.length === 0 ? (
-                <EmptyState />
-              ) : (
-                <SkippedAccountsCard scanResult={scanResult} />
-              )}
-            </>
+          {!hasRecoverableSol(scanResult) ? (
+            scanResult.protectedAccounts.length === 0 &&
+            scanResult.skippedAccounts.length === 0 ? (
+              <EmptyState />
+            ) : (
+              <SkippedAccountsCard scanResult={scanResult} />
+            )
           ) : (
             <>
+              {recoverable && (
+                <RecoverableBreakdownCard recoverable={recoverable} />
+              )}
+
               {summary && <BreakdownCard summary={summary} />}
+
+              {recoverable && recoverable.burnCount > 0 && (
+                <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-orange-500/20 bg-orange-500/5 p-4 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={burnAcknowledged}
+                    onChange={(e) => setBurnAcknowledged(e.target.checked)}
+                    className="mt-1 h-4 w-4 rounded border-zinc-600 bg-zinc-900 text-orange-500 focus:ring-orange-500/40"
+                  />
+                  <span className="leading-relaxed text-zinc-300">
+                    <strong className="text-orange-300">
+                      {recoverable.burnCount} junk token account
+                      {recoverable.burnCount === 1 ? "" : "s"}
+                    </strong>{" "}
+                    will be permanently burned to unlock{" "}
+                    {formatSol(recoverable.burnRentLamports)} SOL in rent.
+                    USDC, USDT, and wSOL are never touched.
+                  </span>
+                </label>
+              )}
 
               {claiming && claimProgress && summary && summary.transactionCount > 1 && (
                 <ClaimProgressBanner
@@ -384,7 +405,11 @@ export function WalletCleaner() {
               <button
                 type="button"
                 onClick={handleClaim}
-                disabled={claiming || !rpcConfigured}
+                disabled={
+                  claiming ||
+                  !rpcConfigured ||
+                  ((recoverable?.burnCount ?? 0) > 0 && !burnAcknowledged)
+                }
                 className={`${ui.btnPrimary} w-full py-3.5 text-base`}
               >
                 {claiming ? (
@@ -398,7 +423,7 @@ export function WalletCleaner() {
                   </>
                 ) : (
                   <>
-                    Claim SOL
+                    Recover all SOL
                     <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
                     </svg>
@@ -407,13 +432,16 @@ export function WalletCleaner() {
               </button>
 
               <p className="text-center text-xs text-zinc-500">
-                Only empty accounts are closed here. Use Burn for tokens with a
-                balance.
+                Closes empty accounts
+                {recoverable && recoverable.burnCount > 0
+                  ? " and burns junk tokens"
+                  : ""}{" "}
+                in batched transactions. Use the Burn tab to pick specific tokens.
               </p>
             </>
           )}
 
-          {scanResult.accounts.length > 0 &&
+          {hasRecoverableSol(scanResult) &&
             (scanResult.protectedAccounts.length > 0 ||
               scanResult.skippedAccounts.length > 0) && (
               <SkippedAccountsCard scanResult={scanResult} compact />
@@ -489,26 +517,26 @@ function LoadingState() {
   return (
     <div className="text-center py-14">
       <div className="inline-flex items-center justify-center w-10 h-10 rounded-full border-2 border-zinc-700 border-t-brand-400 animate-spin mb-4" />
-      <p className="text-surface-muted">Scanning wallet for empty accounts…</p>
+      <p className="text-surface-muted">Scanning wallet for recoverable SOL…</p>
     </div>
   );
 }
 
 function UnclaimedSolCard({
-  scanResult,
+  recoverable,
   summary,
   loading,
   onRescan,
   rpcConfigured,
 }: {
-  scanResult: ScanResult;
+  recoverable: RecoverableBreakdown | null;
   summary: ReturnType<typeof buildReclaimSummary> | null;
   loading: boolean;
   onRescan: () => void;
   rpcConfigured: boolean;
 }) {
   const youReceive = summary?.youReceiveLamports ?? 0;
-  const canClaim = scanResult.accounts.length > 0 && youReceive > 0;
+  const canClaim = (recoverable?.totalCount ?? 0) > 0 && youReceive > 0;
 
   return (
     <div className="relative rounded-xl border border-surface-border bg-surface-overlay p-8 text-center">
@@ -524,39 +552,58 @@ function UnclaimedSolCard({
         </svg>
       </button>
 
-      <p className="text-xs text-surface-muted mb-2">Unclaimed SOL</p>
+      <p className="text-xs text-surface-muted mb-2">Total recoverable</p>
       <p className="font-display text-4xl font-semibold text-white mb-1">
         {formatSol(youReceive)}{" "}
         <span className="text-2xl text-brand-400">SOL</span>
       </p>
-      <p className="text-sm text-surface-muted mb-1">
-        {scanResult.accounts.length} vacant account
-        {scanResult.accounts.length === 1 ? "" : "s"}
-        {scanResult.totalRentLamports > 0 && (
-          <> · {formatSol(scanResult.totalRentLamports)} SOL locked</>
-        )}
-      </p>
+      {recoverable && recoverable.totalCount > 0 && (
+        <p className="text-sm text-surface-muted mb-1">
+          {recoverable.totalCount} account
+          {recoverable.totalCount === 1 ? "" : "s"}
+          {recoverable.totalRentLamports > 0 && (
+            <> · {formatSol(recoverable.totalRentLamports)} SOL locked in rent</>
+          )}
+        </p>
+      )}
       {canClaim && (
         <p className="text-xs text-surface-muted/80">
           After 1% platform fee and network fees
         </p>
       )}
-      {!canClaim && scanResult.burnableAccounts.length > 0 && (
-        <p className="mx-auto mt-3 max-w-md text-xs text-zinc-500">
-          {formatSol(scanResult.burnableRentLamports)} SOL locked in{" "}
-          {scanResult.burnableAccounts.length} token account
-          {scanResult.burnableAccounts.length === 1 ? "" : "s"}. Use the Burn
-          tab to destroy junk tokens and reclaim rent.
+      {recoverable && recoverable.emptyCount === 0 && recoverable.burnCount > 0 && (
+        <p className="mx-auto mt-3 max-w-md text-xs text-orange-300/90">
+          No empty accounts — but {recoverable.burnCount} junk token account
+          {recoverable.burnCount === 1 ? "" : "s"} can be burned to unlock this
+          SOL.
         </p>
       )}
-      {!canClaim &&
-        scanResult.burnableAccounts.length === 0 &&
-        (scanResult.protectedAccounts.length > 0 ||
-          scanResult.skippedAccounts.length > 0) && (
-        <p className="mx-auto mt-3 max-w-md text-xs text-zinc-500">
-          {formatSol(scanResult.skippedRentLamports)} SOL locked in protected or
-          funded accounts.
-        </p>
+    </div>
+  );
+}
+
+function RecoverableBreakdownCard({
+  recoverable,
+}: {
+  recoverable: RecoverableBreakdown;
+}) {
+  return (
+    <div className={`${ui.card} grid gap-3 p-4 text-sm sm:grid-cols-2`}>
+      {recoverable.emptyCount > 0 && (
+        <div className="rounded-lg border border-zinc-800 bg-zinc-950/40 px-3 py-2.5">
+          <p className="text-xs text-zinc-500">Empty accounts</p>
+          <p className="font-medium text-[#14F195]">
+            {recoverable.emptyCount} · {formatSol(recoverable.emptyRentLamports)} SOL
+          </p>
+        </div>
+      )}
+      {recoverable.burnCount > 0 && (
+        <div className="rounded-lg border border-orange-500/20 bg-orange-500/5 px-3 py-2.5">
+          <p className="text-xs text-zinc-500">Junk tokens (burn + close)</p>
+          <p className="font-medium text-orange-300">
+            {recoverable.burnCount} · {formatSol(recoverable.burnRentLamports)} SOL
+          </p>
+        </div>
       )}
     </div>
   );
@@ -570,9 +617,9 @@ function EmptyState() {
           <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
         </svg>
       </div>
-      <p className="font-display text-base font-semibold mb-1">Nothing to claim</p>
+      <p className="font-display text-base font-semibold mb-1">Nothing to recover</p>
       <p className="text-sm text-surface-muted">
-        No vacant token accounts on-chain right now.
+        No empty or junk token accounts found right now.
       </p>
     </div>
   );

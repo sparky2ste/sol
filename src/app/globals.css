@@ -21,6 +21,28 @@
   }
 }
 
+@layer utilities {
+  .text-gradient-brand {
+    @apply bg-gradient-to-r from-[#14F195] via-emerald-300 to-[#14F195] bg-clip-text text-transparent;
+    background-size: 200% auto;
+    animation: gradientShift 4s ease-in-out infinite;
+  }
+
+  .glass-card {
+    @apply rounded-2xl border border-zinc-800/70 bg-zinc-900/45 shadow-xl shadow-black/20 backdrop-blur-md ring-1 ring-white/[0.04];
+  }
+}
+
+@keyframes gradientShift {
+  0%,
+  100% {
+    background-position: 0% center;
+  }
+  50% {
+    background-position: 100% center;
+  }
+}
+
 .wallet-adapter-button {
   background: #14f195 !important;
   color: #09090b !important;

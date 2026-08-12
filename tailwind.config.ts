@@ -32,10 +32,12 @@ const config: Config = {
       },
       animation: {
         "fade-in": "fadeIn 0.4s ease-out forwards",
-        "fade-in-up": "fadeInUp 0.5s ease-out forwards",
+        "fade-in-up": "fadeInUp 0.6s ease-out forwards",
         float: "float 5s ease-in-out infinite",
         shimmer: "shimmer 2.5s ease-in-out infinite",
         "pulse-glow": "pulseGlow 2s ease-in-out infinite",
+        drift: "drift 18s ease-in-out infinite",
+        "drift-reverse": "drift 22s ease-in-out infinite reverse",
       },
       keyframes: {
         fadeIn: {
@@ -57,6 +59,11 @@ const config: Config = {
         pulseGlow: {
           "0%, 100%": { opacity: "0.4" },
           "50%": { opacity: "0.8" },
+        },
+        drift: {
+          "0%, 100%": { transform: "translate(0, 0) scale(1)" },
+          "33%": { transform: "translate(3%, 2%) scale(1.05)" },
+          "66%": { transform: "translate(-2%, -1%) scale(0.98)" },
         },
       },
     },

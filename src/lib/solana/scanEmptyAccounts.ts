@@ -313,13 +313,24 @@ export async function scanEmptyAccounts(
 
   const accounts = [...spl.empty, ...token2022.empty];
   const burnableAccounts = [...spl.burnable, ...token2022.burnable];
+
+  const dedupeByPubkey = <T extends { pubkey: PublicKey }>(items: T[]): T[] => {
+    const map = new Map<string, T>();
+    for (const item of items) {
+      map.set(item.pubkey.toBase58(), item);
+    }
+    return Array.from(map.values());
+  };
+
+  const uniqueAccounts = dedupeByPubkey(accounts);
+  const uniqueBurnable = dedupeByPubkey(burnableAccounts);
   const protectedAccounts = [...spl.protected, ...token2022.protected];
   const skippedAccounts = [...spl.skipped, ...token2022.skipped];
-  const totalRentLamports = accounts.reduce(
+  const totalRentLamports = uniqueAccounts.reduce(
     (sum, acc) => sum + acc.rentLamports,
     0
   );
-  const burnableRentLamports = burnableAccounts.reduce(
+  const burnableRentLamports = uniqueBurnable.reduce(
     (sum, acc) => sum + acc.rentLamports,
     0
   );
@@ -328,8 +339,8 @@ export async function scanEmptyAccounts(
     skippedAccounts.reduce((sum, acc) => sum + acc.rentLamports, 0);
 
   return {
-    accounts,
-    burnableAccounts,
+    accounts: uniqueAccounts,
+    burnableAccounts: uniqueBurnable,
     protectedAccounts,
     skippedAccounts,
     totalRentLamports,

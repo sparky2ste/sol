@@ -1,10 +1,7 @@
 "use client";
 
 import { lamportsToSol } from "@/lib/format";
-import {
-  getGoalTiersSol,
-  type GoalProgress,
-} from "@/lib/communityGoals";
+import type { GoalProgress } from "@/lib/communityGoals";
 import { ui } from "@/lib/ui";
 
 interface CommunityGoalCardProps {
@@ -13,8 +10,6 @@ interface CommunityGoalCardProps {
   compact?: boolean;
   className?: string;
 }
-
-const LAMPORTS_PER_SOL = 1_000_000_000;
 
 const COPY = {
   burn: {
@@ -34,9 +29,6 @@ const COPY = {
     badge: "bg-orange-500/15 text-orange-300 ring-1 ring-orange-500/25",
     bar: "from-orange-500 via-amber-400 to-orange-300",
     barGlow: "shadow-[0_0_12px_rgba(251,146,60,0.5)]",
-    dotActive: "border-orange-400 bg-orange-400/20 text-orange-300",
-    dotDone: "border-orange-500/40 bg-orange-500/15 text-orange-400",
-    dotUpcoming: "border-zinc-700 bg-zinc-800/50 text-zinc-600",
     live: "bg-orange-400",
     chip: "border-orange-500/30 bg-orange-500/10 text-orange-300",
     celebrate: "from-orange-500/10 via-transparent to-transparent",
@@ -58,9 +50,6 @@ const COPY = {
     badge: "bg-[#14F195]/12 text-[#14F195] ring-1 ring-[#14F195]/25",
     bar: "from-emerald-600 via-[#14F195] to-emerald-300",
     barGlow: "shadow-[0_0_12px_rgba(20,241,149,0.45)]",
-    dotActive: "border-[#14F195] bg-[#14F195]/15 text-[#14F195]",
-    dotDone: "border-[#14F195]/40 bg-[#14F195]/10 text-[#14F195]",
-    dotUpcoming: "border-zinc-700 bg-zinc-800/50 text-zinc-600",
     live: "bg-[#14F195]",
     chip: "border-[#14F195]/30 bg-[#14F195]/10 text-[#14F195]",
     celebrate: "from-[#14F195]/10 via-transparent to-transparent",
@@ -87,8 +76,6 @@ export function CommunityGoalCard({
     data && data.currentGoalLamports > data.totalLamports
       ? lamportsToSol(data.currentGoalLamports - data.totalLamports, 2)
       : "0";
-
-  const tierDots = buildTierDots(kind, data);
 
   return (
     <div
@@ -142,10 +129,6 @@ export function CommunityGoalCard({
             </span>
           )}
         </div>
-
-        {!loading && tierDots.length > 0 && (
-          <TierStepper dots={tierDots} theme={theme} compact={compact} />
-        )}
 
         {!loading && completed.length > 0 && (
           <div className={`flex flex-wrap gap-1.5 ${compact ? "mb-3 mt-3" : "mb-4 mt-4"}`}>
@@ -231,101 +214,6 @@ export function CommunityGoalCard({
         )}
       </div>
     </div>
-  );
-}
-
-type Theme = (typeof COPY)[keyof typeof COPY];
-
-interface TierDot {
-  label: string;
-  state: "done" | "active" | "upcoming";
-}
-
-function buildTierDots(
-  kind: "burn" | "reclaim",
-  data: GoalProgress | null
-): TierDot[] {
-  if (!data) return [];
-
-  const tiersSol = getGoalTiersSol(kind);
-  const tiersLamports = tiersSol.map((sol) =>
-    Math.floor(sol * LAMPORTS_PER_SOL)
-  );
-  const completedSet = new Set(data.completedGoalsLamports);
-  const current = data.currentGoalLamports;
-
-  const visible = tiersLamports.filter((tier) => {
-    if (completedSet.has(tier)) return true;
-    if (tier === current) return true;
-    const firstUpcoming = tiersLamports.find(
-      (t) => !completedSet.has(t) && t !== current
-    );
-    return tier === firstUpcoming;
-  });
-
-  const capped = visible.slice(-5);
-
-  return capped.map((tier) => ({
-    label: lamportsToSol(tier, 0),
-    state: completedSet.has(tier)
-      ? "done"
-      : tier === current
-        ? "active"
-        : "upcoming",
-  }));
-}
-
-function TierStepper({
-  dots,
-  theme,
-  compact,
-}: {
-  dots: TierDot[];
-  theme: Theme;
-  compact: boolean;
-}) {
-  return (
-    <div className={`flex items-center gap-1 ${compact ? "mb-2" : "mb-1"}`}>
-      {dots.map((dot, i) => (
-        <div key={`${dot.label}-${i}`} className="flex flex-1 flex-col items-center gap-1">
-          <div
-            className={`flex h-7 w-full max-w-[3.25rem] items-center justify-center rounded-lg border text-[10px] font-semibold tabular-nums transition-colors ${
-              dot.state === "done"
-                ? theme.dotDone
-                : dot.state === "active"
-                  ? `${theme.dotActive} ring-1 ring-inset`
-                  : theme.dotUpcoming
-            }`}
-          >
-            {dot.state === "done" ? (
-              <CheckIcon />
-            ) : (
-              dot.label
-            )}
-          </div>
-          {dot.state === "active" && (
-            <span className={`text-[9px] font-medium uppercase tracking-wider ${theme.accent}`}>
-              Now
-            </span>
-          )}
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function CheckIcon() {
-  return (
-    <svg
-      className="h-3.5 w-3.5"
-      fill="none"
-      viewBox="0 0 24 24"
-      stroke="currentColor"
-      strokeWidth={2.5}
-      aria-hidden="true"
-    >
-      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-    </svg>
   );
 }
 
