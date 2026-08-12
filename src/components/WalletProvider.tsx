@@ -20,8 +20,6 @@ import {
   PUBLIC_WS_RPC_URL,
 } from "@/lib/solana/constants";
 
-import "@solana/wallet-adapter-react-ui/styles.css";
-
 function createWallets(): Adapter[] {
   return [new PhantomWalletAdapter(), new SolflareWalletAdapter()];
 }

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import { ConnectWallet } from "@/components/ConnectWallet";
+import { BurnModule } from "@/components/BurnModule";
 import type { ScanResult } from "@/lib/solana/scanEmptyAccounts";
 import { scanWalletViaApi } from "@/lib/solana/scanWalletApi";
 import {
@@ -17,6 +18,7 @@ import {
   getFeeWallet,
   truncateAddress,
 } from "@/lib/solana/constants";
+import { ui } from "@/lib/ui";
 
 export function WalletCleaner() {
   const { connection } = useConnection();
@@ -34,6 +36,7 @@ export function WalletCleaner() {
   const [success, setSuccess] = useState<string[] | null>(null);
   const [rpcConfigured, setRpcConfigured] = useState<boolean | null>(null);
   const [walletBalance, setWalletBalance] = useState<number | null>(null);
+  const [tab, setTab] = useState<"reclaim" | "burn">("reclaim");
 
   const feeWallet = useMemo(() => getFeeWallet(), []);
 
@@ -140,9 +143,9 @@ export function WalletCleaner() {
   if (!connected) {
     return (
       <div className="text-center py-10 sm:py-14">
-        <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-accent-400/10 border border-accent-400/20 mb-6">
+        <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-brand-400/10 mb-5">
           <svg
-            className="w-8 h-8 text-accent-400"
+            className="w-7 h-7 text-brand-400"
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
@@ -155,12 +158,11 @@ export function WalletCleaner() {
             />
           </svg>
         </div>
-        <h3 className="font-display text-2xl font-bold mb-3">
+        <h3 className="font-display text-xl font-semibold mb-2">
           Connect your wallet
         </h3>
-        <p className="text-surface-muted max-w-md mx-auto mb-8 leading-relaxed">
-          Link Phantom or Solflare to scan for empty token accounts and reclaim
-          locked SOL. Fully non-custodial.
+        <p className="text-surface-muted text-sm max-w-sm mx-auto mb-8">
+          Link Phantom or Solflare to scan for empty accounts.
         </p>
         <ConnectWallet layout="stack" />
         <p className="text-xs text-surface-muted/70 mt-6 max-w-sm mx-auto leading-relaxed">
@@ -175,9 +177,23 @@ export function WalletCleaner() {
     <div className="space-y-5">
       {rpcConfigured === false && <RpcSetupBanner />}
 
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-xl bg-surface-overlay/50 border border-white/[0.05]">
+      <div className="flex gap-1 rounded-xl border border-zinc-800 bg-zinc-900/80 p-1">
+        <TabButton active={tab === "reclaim"} onClick={() => setTab("reclaim")}>
+          Reclaim
+        </TabButton>
+        <TabButton active={tab === "burn"} onClick={() => setTab("burn")}>
+          Burn tokens
+          {scanResult && scanResult.burnableAccounts.length > 0 && (
+            <span className="ml-1.5 rounded-full bg-red-500/20 px-1.5 py-0.5 text-[10px] font-semibold text-red-400">
+              {scanResult.burnableAccounts.length}
+            </span>
+          )}
+        </TabButton>
+      </div>
+
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-xl bg-zinc-900 border border-zinc-800">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-gradient-brand flex items-center justify-center text-xs font-bold text-[#06060a]">
+          <div className="w-9 h-9 rounded-full bg-brand-400 flex items-center justify-center text-xs font-bold text-zinc-950">
             {publicKey?.toBase58().slice(0, 2).toUpperCase()}
           </div>
           <div>
@@ -191,7 +207,7 @@ export function WalletCleaner() {
           type="button"
           onClick={scanWallet}
           disabled={loading || !rpcConfigured}
-          className="btn-secondary disabled:opacity-40"
+          className={`${ui.btnSecondary} disabled:opacity-40`}
         >
           {loading ? (
             <>
@@ -232,6 +248,14 @@ export function WalletCleaner() {
       {loading && !scanResult ? (
         <LoadingState />
       ) : scanResult ? (
+        tab === "burn" ? (
+          <BurnModule
+            scanResult={scanResult}
+            onRescan={scanWallet}
+            loading={loading}
+            rpcConfigured={!!rpcConfigured}
+          />
+        ) : (
         <>
           <UnclaimedSolCard
             scanResult={scanResult}
@@ -243,7 +267,24 @@ export function WalletCleaner() {
 
           {scanResult.accounts.length === 0 ? (
             <>
-              {scanResult.skippedAccounts.length === 0 ? (
+              {scanResult.burnableAccounts.length > 0 ? (
+                <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-5 text-center text-sm">
+                  <p className="font-medium">No empty accounts</p>
+                  <p className={`mt-1 ${ui.muted}`}>
+                    You have {scanResult.burnableAccounts.length} token account
+                    {scanResult.burnableAccounts.length === 1 ? "" : "s"} that
+                    can be burned on the Burn tab.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setTab("burn")}
+                    className={`${ui.btnSecondary} mt-4`}
+                  >
+                    Go to Burn
+                  </button>
+                </div>
+              ) : scanResult.protectedAccounts.length === 0 &&
+                scanResult.skippedAccounts.length === 0 ? (
                 <EmptyState />
               ) : (
                 <SkippedAccountsCard scanResult={scanResult} />
@@ -264,7 +305,7 @@ export function WalletCleaner() {
                 type="button"
                 onClick={handleClaim}
                 disabled={claiming || !feeWallet || !rpcConfigured}
-                className="btn-primary w-full py-4 text-base rounded-2xl"
+                className={`${ui.btnPrimary} w-full py-3.5 text-base`}
               >
                 {claiming ? (
                   <>
@@ -291,18 +332,20 @@ export function WalletCleaner() {
                 </p>
               )}
 
-              <p className="text-center text-xs text-surface-muted/70">
-                Only vacant accounts are closed. USDC and active tokens are never
-                touched.
+              <p className="text-center text-xs text-zinc-500">
+                Only empty accounts are closed here. Use Burn for tokens with a
+                balance.
               </p>
             </>
           )}
 
           {scanResult.accounts.length > 0 &&
-            scanResult.skippedAccounts.length > 0 && (
+            (scanResult.protectedAccounts.length > 0 ||
+              scanResult.skippedAccounts.length > 0) && (
               <SkippedAccountsCard scanResult={scanResult} compact />
             )}
         </>
+        )
       ) : rpcConfigured === false ? (
         <div className="text-center py-8 text-surface-muted text-sm">
           Configure Helius API key above to enable wallet scanning.
@@ -399,7 +442,7 @@ function SuccessAlert({ signatures }: { signatures: string[] }) {
 function LoadingState() {
   return (
     <div className="text-center py-14">
-      <div className="inline-flex items-center justify-center w-12 h-12 rounded-full border-2 border-accent-400/30 border-t-accent-400 animate-spin mb-4" />
+      <div className="inline-flex items-center justify-center w-10 h-10 rounded-full border-2 border-zinc-700 border-t-brand-400 animate-spin mb-4" />
       <p className="text-surface-muted">Scanning wallet for empty accounts…</p>
     </div>
   );
@@ -422,12 +465,12 @@ function UnclaimedSolCard({
   const canClaim = scanResult.accounts.length > 0 && youReceive > 0;
 
   return (
-    <div className="relative rounded-2xl border border-white/[0.08] bg-surface-overlay/40 p-8 sm:p-10 text-center overflow-hidden">
+    <div className="relative rounded-xl border border-surface-border bg-surface-overlay p-8 text-center">
       <button
         type="button"
         onClick={onRescan}
         disabled={loading || !rpcConfigured}
-        className="absolute top-4 right-4 p-2 rounded-lg text-surface-muted hover:text-white hover:bg-white/[0.06] disabled:opacity-40 transition-colors"
+        className="absolute top-4 right-4 p-2 rounded-lg text-surface-muted hover:text-white hover:bg-zinc-800 disabled:opacity-40 transition-colors"
         aria-label="Rescan wallet"
       >
         <svg className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -435,12 +478,10 @@ function UnclaimedSolCard({
         </svg>
       </button>
 
-      <p className="text-xs font-medium uppercase tracking-[0.2em] text-surface-muted mb-3">
-        Unclaimed SOL
-      </p>
-      <p className="font-display text-4xl sm:text-5xl font-bold text-white mb-2">
+      <p className="text-xs text-surface-muted mb-2">Unclaimed SOL</p>
+      <p className="font-display text-4xl font-semibold text-white mb-1">
         {formatSol(youReceive)}{" "}
-        <span className="text-2xl sm:text-3xl text-brand-400">SOL</span>
+        <span className="text-2xl text-brand-400">SOL</span>
       </p>
       <p className="text-sm text-surface-muted mb-1">
         {scanResult.accounts.length} vacant account
@@ -454,10 +495,21 @@ function UnclaimedSolCard({
           After 1% platform fee and network fees
         </p>
       )}
-      {!canClaim && scanResult.skippedAccounts.length > 0 && (
-        <p className="text-xs text-blue-300/90 mt-3 max-w-md mx-auto">
-          {formatSol(scanResult.skippedRentLamports)} SOL locked in accounts
-          that still hold tokens. Send them out first, then rescan.
+      {!canClaim && scanResult.burnableAccounts.length > 0 && (
+        <p className="mx-auto mt-3 max-w-md text-xs text-zinc-500">
+          {formatSol(scanResult.burnableRentLamports)} SOL locked in{" "}
+          {scanResult.burnableAccounts.length} token account
+          {scanResult.burnableAccounts.length === 1 ? "" : "s"}. Use the Burn
+          tab to destroy junk tokens and reclaim rent.
+        </p>
+      )}
+      {!canClaim &&
+        scanResult.burnableAccounts.length === 0 &&
+        (scanResult.protectedAccounts.length > 0 ||
+          scanResult.skippedAccounts.length > 0) && (
+        <p className="mx-auto mt-3 max-w-md text-xs text-zinc-500">
+          {formatSol(scanResult.skippedRentLamports)} SOL locked in protected or
+          funded accounts.
         </p>
       )}
     </div>
@@ -466,7 +518,7 @@ function UnclaimedSolCard({
 
 function EmptyState() {
   return (
-    <div className="text-center py-8 rounded-xl bg-surface-overlay/30 border border-white/[0.04]">
+    <div className="text-center py-8 rounded-xl bg-surface-overlay border border-surface-border">
       <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-brand-400/10 mb-3">
         <svg className="w-6 h-6 text-brand-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
@@ -487,33 +539,70 @@ function SkippedAccountsCard({
   scanResult: ScanResult;
   compact?: boolean;
 }) {
+  const protectedList = scanResult.protectedAccounts;
+  const blocked = scanResult.skippedAccounts;
+  const all = [...protectedList, ...blocked];
+
+  if (all.length === 0) return null;
+
   return (
-    <div className="rounded-xl border border-blue-500/25 bg-blue-500/8 p-5 space-y-3 text-sm">
-      <p className="font-semibold text-blue-200">
-        {compact ? "Skipped (not empty)" : "Accounts with balances"}{" "}
+    <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-5 space-y-3 text-sm">
+      <p className="font-medium text-zinc-300">
+        {compact ? "Not included in reclaim" : "Protected & blocked accounts"}{" "}
         {!compact && `(${formatSol(scanResult.skippedRentLamports)} SOL locked)`}
       </p>
       {!compact && (
-        <p className="text-blue-200/80 leading-relaxed">
-          These still hold tokens like USDC. We never burn or sell them. Send
-          the balance out in Phantom, then hit <strong>Rescan</strong> to claim
-          the rent once the account is empty.
+        <p className={`leading-relaxed ${ui.muted}`}>
+          USDC, USDT, and wSOL are never burned. Frozen accounts cannot be
+          closed.
         </p>
       )}
       <div className="space-y-2">
-        {scanResult.skippedAccounts.map((account, i) => (
+        {all.map((account, i) => (
           <div
             key={i}
-            className="flex justify-between text-xs text-blue-100/90 rounded-lg bg-black/20 px-3 py-2"
+            className="flex justify-between rounded-lg border border-zinc-800 bg-zinc-950/50 px-3 py-2 text-xs text-zinc-400"
           >
-            <span>{account.label}</span>
+            <span>
+              {account.label}
+              {account.reason === "protected" && (
+                <span className="ml-1 text-zinc-600">· protected</span>
+              )}
+              {account.reason === "frozen" && (
+                <span className="ml-1 text-zinc-600">· frozen</span>
+              )}
+            </span>
             <span className="font-mono">
-              {account.uiAmount ?? "?"} · ~{formatSol(account.rentLamports)} SOL rent
+              {account.uiAmount ?? "?"} · ~{formatSol(account.rentLamports)} SOL
             </span>
           </div>
         ))}
       </div>
     </div>
+  );
+}
+
+function TabButton({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`flex flex-1 items-center justify-center gap-1 rounded-lg px-4 py-2.5 text-sm font-medium transition-colors ${
+        active
+          ? "bg-zinc-800 text-zinc-50"
+          : "text-zinc-500 hover:text-zinc-300"
+      }`}
+    >
+      {children}
+    </button>
   );
 }
 
@@ -525,8 +614,8 @@ function ClaimProgressBanner({
   totalReceiveLamports: number;
 }) {
   return (
-    <div className="rounded-xl border border-accent-400/30 bg-accent-400/10 p-4 text-sm space-y-2">
-      <p className="font-semibold text-accent-300">
+    <div className="rounded-xl border border-surface-border bg-surface-overlay p-4 text-sm space-y-2">
+      <p className="font-medium text-brand-400">
         Sending transaction {progress.current} of {progress.total}
       </p>
       <p className="text-surface-muted leading-relaxed">
@@ -558,7 +647,7 @@ function BreakdownCard({
   };
 }) {
   return (
-    <div className="glass-card p-5 space-y-4">
+    <div className={`${ui.card} space-y-4 p-5`}>
       <h3 className="font-display font-semibold">Payout breakdown</h3>
       <div className="space-y-2.5 text-sm">
         <Row label="Total reclaimed" value={`${formatSol(summary.reclaimedLamports)} SOL`} />
@@ -576,13 +665,13 @@ function BreakdownCard({
           value={`−${formatSol(summary.networkFeeLamports)} SOL`}
           muted
         />
-        <div className="border-t border-white/[0.06] pt-3">
+        <div className="border-t border-surface-border pt-3">
           <Row label="You receive" value={`${formatSol(summary.youReceiveLamports)} SOL`} bold />
         </div>
       </div>
 
       {summary.transactionCount > 1 && (
-        <div className="rounded-lg bg-surface/60 border border-white/[0.05] p-3 space-y-2">
+        <div className="rounded-lg bg-surface border border-surface-border p-3 space-y-2">
           <p className="text-xs font-medium text-surface-muted uppercase tracking-wide">
             Split into {summary.transactionCount} transactions (approved together)
           </p>

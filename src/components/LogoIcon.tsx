@@ -1,0 +1,19 @@
+export function LogoIcon({ className = "w-5 h-5" }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 40 40" fill="none" aria-hidden>
+      <circle cx="20" cy="20" r="20" fill="#14F195" />
+      <path
+        fill="#09090b"
+        d="M11.5 25.8L28.5 21V23.4L11.5 28.2V25.8Z"
+      />
+      <path
+        fill="#09090b"
+        d="M11.5 21.1L28.5 16.3V18.7L11.5 23.5V21.1Z"
+      />
+      <path
+        fill="#09090b"
+        d="M11.5 16.4L28.5 11.6V14L11.5 18.8V16.4Z"
+      />
+    </svg>
+  );
+}

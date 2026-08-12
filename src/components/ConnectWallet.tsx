@@ -7,6 +7,7 @@ import { WalletReadyState } from "@solana/wallet-adapter-base";
 import { PhantomWalletName } from "@solana/wallet-adapter-phantom";
 import { SolflareWalletName } from "@solana/wallet-adapter-solflare";
 import { truncateAddress } from "@/lib/solana/constants";
+import { ui } from "@/lib/ui";
 import {
   getMobileWalletContext,
   getPhantomBrowseUrl,
@@ -160,11 +161,13 @@ export function ConnectWallet({
 
   const primaryBtnClass =
     className ??
-    (isStack ? "btn-primary w-full min-h-[48px] text-base" : "btn-primary");
+    (isStack
+      ? `${ui.btnPrimary} w-full min-h-[48px] text-base`
+      : ui.btnPrimary);
 
   const secondaryBtnClass = isStack
-    ? "btn-secondary w-full min-h-[48px] text-base"
-    : "btn-secondary";
+    ? `${ui.btnSecondary} w-full min-h-[48px] text-base`
+    : ui.btnSecondary;
 
   if (connected && publicKey) {
     return (
@@ -173,10 +176,10 @@ export function ConnectWallet({
         onClick={handleDisconnect}
         className={
           className ??
-          "inline-flex items-center justify-center gap-2 px-5 py-2.5 min-h-[44px] rounded-xl font-medium text-sm border border-surface-border bg-surface-overlay/50 hover:border-accent-400/40 transition-colors"
+          `${ui.btnSecondary} !min-h-[44px]`
         }
       >
-        <span className="w-2 h-2 rounded-full bg-brand-400 shrink-0" />
+        <span className="h-2 w-2 shrink-0 rounded-full bg-[#14F195]" />
         {truncateAddress(publicKey.toBase58(), 4)}
       </button>
     );

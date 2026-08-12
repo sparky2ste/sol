@@ -1,63 +1,34 @@
+import { ui } from "@/lib/ui";
+
 const TRUST_ITEMS = [
-  { label: "Non-custodial", desc: "Keys stay in your wallet" },
-  { label: "No seed phrase", desc: "We never ask for secrets" },
-  { label: "1% fee", desc: "Only on reclaimed rent" },
-  { label: "Empty accounts only", desc: "No tokens burned or sold" },
+  "Non-custodial",
+  "No seed phrase",
+  "1% fee",
+  "Empty accounts only",
 ];
 
 export function Hero() {
   return (
-    <section className="text-center pt-12 pb-8 sm:pt-16 sm:pb-10 animate-fade-in">
-      <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-white/[0.08] bg-surface-overlay/60 text-xs text-surface-muted mb-6">
-        <span className="w-1.5 h-1.5 rounded-full bg-brand-400" />
-        Non-custodial wallet utility
-      </div>
-
-      <h1 className="font-display text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight mb-5 leading-[1.1]">
-        Close empty token accounts,
-        <br />
-        <span className="gradient-text">recover locked rent</span>
+    <section className="px-2 pt-16 pb-12 text-center sm:pt-24 sm:pb-16">
+      <h1
+        className={`${ui.heading} mx-auto mb-8 max-w-3xl text-4xl leading-[1.05] sm:text-5xl lg:text-6xl`}
+      >
+        Close empty token accounts,{" "}
+        <span className="text-[#14F195]">recover locked rent</span>
       </h1>
 
-      <p className="text-surface-muted text-lg sm:text-xl max-w-2xl mx-auto mb-8 leading-relaxed">
-        Vacant SPL and Token-2022 accounts hold about 0.002 SOL each in rent.
-        This tool closes zero-balance accounts only, similar to{" "}
-        <a
-          href="https://sol-incinerator.com/"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-white/80 underline hover:text-white"
-        >
-          Sol Incinerator
-        </a>
-        . Connect Phantom or Solflare, review the transaction, and sign in your
-        wallet.{" "}
-        <span className="text-white font-medium">1% platform fee</span> on
-        reclaimed SOL.
-      </p>
-
-      <div className="flex flex-wrap justify-center gap-3 sm:gap-4">
+      <div className="mb-10 flex flex-wrap justify-center gap-2">
         {TRUST_ITEMS.map((item) => (
-          <div
-            key={item.label}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-surface-overlay/40 border border-white/[0.05] text-left"
-          >
-            <svg
-              className="w-4 h-4 text-brand-400 shrink-0"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              strokeWidth={2.5}
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-            </svg>
-            <div>
-              <p className="text-sm font-medium text-white">{item.label}</p>
-              <p className="text-[11px] text-surface-muted">{item.desc}</p>
-            </div>
-          </div>
+          <span key={item} className={ui.pill}>
+            <span className="h-1 w-1 rounded-full bg-[#14F195]" />
+            {item}
+          </span>
         ))}
       </div>
+
+      <a href="#tool" className={`${ui.btnPrimary} px-8`}>
+        Get started
+      </a>
     </section>
   );
 }

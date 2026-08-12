@@ -29,12 +29,40 @@ export interface SkippedTokenAccount {
   reason?: string;
 }
 
+export interface BurnableTokenAccount {
+  pubkey: PublicKey;
+  mint: PublicKey;
+  programId: PublicKey;
+  rentLamports: number;
+  tokenAmount: string;
+  uiAmount: number | null;
+  decimals: number;
+  label: string;
+}
+
 export interface ScanResult {
   accounts: EmptyTokenAccount[];
+  burnableAccounts: BurnableTokenAccount[];
+  protectedAccounts: SkippedTokenAccount[];
   skippedAccounts: SkippedTokenAccount[];
   totalRentLamports: number;
+  burnableRentLamports: number;
   skippedRentLamports: number;
   wallet: PublicKey;
+}
+
+export function burnableToEmptyAccount(
+  account: BurnableTokenAccount
+): EmptyTokenAccount {
+  return {
+    pubkey: account.pubkey,
+    mint: account.mint,
+    programId: account.programId,
+    rentLamports: account.rentLamports,
+    tokenAmount: account.tokenAmount,
+    requiresBurn: true,
+    decimals: account.decimals,
+  };
 }
 
 interface ParsedTokenInfo {
@@ -79,19 +107,6 @@ function getSkippedLabel(mint: string): string {
   return getKnownMintLabel(mint) ?? "Token";
 }
 
-/** Dust that displays as 0 in wallet UIs — vacant spam, not USDC. */
-function isVacantDust(info: ParsedTokenInfo, tokenAmount: bigint): boolean {
-  if (tokenAmount === BigInt(0)) return false;
-  if (isProtectedMint(info.mint)) return false;
-
-  const uiAmount = info.tokenAmount?.uiAmount;
-  if (uiAmount === 0) return true;
-
-  if (uiAmount == null && tokenAmount <= BigInt(1)) return true;
-
-  return false;
-}
-
 function toAccountBuffer(data: unknown): Buffer | null {
   if (Buffer.isBuffer(data)) return data;
   if (data instanceof Uint8Array) return Buffer.from(data);
@@ -119,6 +134,8 @@ async function scanProgramAccounts(
   programId: PublicKey
 ): Promise<{
   empty: EmptyTokenAccount[];
+  burnable: BurnableTokenAccount[];
+  protected: SkippedTokenAccount[];
   skipped: SkippedTokenAccount[];
 }> {
   const response = await connection.getParsedTokenAccountsByOwner(owner, {
@@ -126,6 +143,8 @@ async function scanProgramAccounts(
   });
 
   const empty: EmptyTokenAccount[] = [];
+  const burnable: BurnableTokenAccount[] = [];
+  const protectedAccounts: SkippedTokenAccount[] = [];
   const skipped: SkippedTokenAccount[] = [];
   const seen = new Set<string>();
 
@@ -175,27 +194,33 @@ async function scanProgramAccounts(
         continue;
       }
 
-      if (isVacantDust(parsed, tokenAmount)) {
-        empty.push({
+      const label = getSkippedLabel(parsed.mint);
+      const decimals = parsed.tokenAmount?.decimals ?? 0;
+      const uiAmount = parsed.tokenAmount?.uiAmount ?? null;
+
+      if (isProtectedMint(parsed.mint)) {
+        protectedAccounts.push({
           pubkey,
           mint: new PublicKey(parsed.mint),
           programId,
           rentLamports,
           tokenAmount: tokenAmount.toString(),
-          requiresBurn: true,
-          decimals: parsed.tokenAmount?.decimals,
+          uiAmount,
+          label,
+          reason: "protected",
         });
         continue;
       }
 
-      skipped.push({
+      burnable.push({
         pubkey,
         mint: new PublicKey(parsed.mint),
         programId,
         rentLamports,
         tokenAmount: tokenAmount.toString(),
-        uiAmount: parsed.tokenAmount?.uiAmount ?? null,
-        label: getSkippedLabel(parsed.mint),
+        uiAmount,
+        decimals,
+        label,
       });
       continue;
     }
@@ -210,23 +235,26 @@ async function scanProgramAccounts(
         programId,
         rentLamports,
       });
-    } else if (!isProtectedMint(raw.mint.toBase58()) && raw.amount <= BigInt(1)) {
-      empty.push({
-        pubkey,
-        mint: raw.mint,
-        programId,
-        rentLamports,
-        tokenAmount: raw.amount.toString(),
-        requiresBurn: true,
-      });
-    } else {
-      skipped.push({
+    } else if (isProtectedMint(raw.mint.toBase58())) {
+      protectedAccounts.push({
         pubkey,
         mint: raw.mint,
         programId,
         rentLamports,
         tokenAmount: raw.amount.toString(),
         uiAmount: null,
+        label: getSkippedLabel(raw.mint.toBase58()),
+        reason: "protected",
+      });
+    } else {
+      burnable.push({
+        pubkey,
+        mint: raw.mint,
+        programId,
+        rentLamports,
+        tokenAmount: raw.amount.toString(),
+        uiAmount: null,
+        decimals: 0,
         label: getSkippedLabel(raw.mint.toBase58()),
       });
     }
@@ -246,17 +274,8 @@ async function scanProgramAccounts(
 
     if (raw.amount === BigInt(0)) {
       empty.push({ pubkey, mint: raw.mint, programId, rentLamports });
-    } else if (!isProtectedMint(raw.mint.toBase58()) && raw.amount <= BigInt(1)) {
-      empty.push({
-        pubkey,
-        mint: raw.mint,
-        programId,
-        rentLamports,
-        tokenAmount: raw.amount.toString(),
-        requiresBurn: true,
-      });
-    } else {
-      skipped.push({
+    } else if (isProtectedMint(raw.mint.toBase58())) {
+      protectedAccounts.push({
         pubkey,
         mint: raw.mint,
         programId,
@@ -264,11 +283,23 @@ async function scanProgramAccounts(
         tokenAmount: raw.amount.toString(),
         uiAmount: null,
         label: getSkippedLabel(raw.mint.toBase58()),
+        reason: "protected",
+      });
+    } else {
+      burnable.push({
+        pubkey,
+        mint: raw.mint,
+        programId,
+        rentLamports,
+        tokenAmount: raw.amount.toString(),
+        uiAmount: null,
+        decimals: 0,
+        label: getSkippedLabel(raw.mint.toBase58()),
       });
     }
   }
 
-  return { empty, skipped };
+  return { empty, burnable, protected: protectedAccounts, skipped };
 }
 
 export async function scanEmptyAccounts(
@@ -281,20 +312,28 @@ export async function scanEmptyAccounts(
   ]);
 
   const accounts = [...spl.empty, ...token2022.empty];
+  const burnableAccounts = [...spl.burnable, ...token2022.burnable];
+  const protectedAccounts = [...spl.protected, ...token2022.protected];
   const skippedAccounts = [...spl.skipped, ...token2022.skipped];
   const totalRentLamports = accounts.reduce(
     (sum, acc) => sum + acc.rentLamports,
     0
   );
-  const skippedRentLamports = skippedAccounts.reduce(
+  const burnableRentLamports = burnableAccounts.reduce(
     (sum, acc) => sum + acc.rentLamports,
     0
   );
+  const skippedRentLamports =
+    protectedAccounts.reduce((sum, acc) => sum + acc.rentLamports, 0) +
+    skippedAccounts.reduce((sum, acc) => sum + acc.rentLamports, 0);
 
   return {
     accounts,
+    burnableAccounts,
+    protectedAccounts,
     skippedAccounts,
     totalRentLamports,
+    burnableRentLamports,
     skippedRentLamports,
     wallet,
   };

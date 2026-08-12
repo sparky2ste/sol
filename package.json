@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "dev:clean": "node -e \"require('fs').rmSync('.next',{recursive:true,force:true})\" && next dev",
+    "dev:clean": "node scripts/dev-clean.mjs",
     "build": "next build",
     "postbuild": "node scripts/cf-build.mjs --opennext-only",
     "cf:build": "node scripts/cf-build.mjs",

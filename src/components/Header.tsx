@@ -2,31 +2,36 @@
 
 import { ConnectWallet } from "@/components/ConnectWallet";
 import { Logo } from "@/components/Logo";
+import { ui } from "@/lib/ui";
+
+const NAV = [
+  { href: "#tool", label: "Reclaim" },
+  { href: "#recent-claims", label: "Activity" },
+  { href: "#how-it-works", label: "How it works" },
+  { href: "#faq", label: "FAQ" },
+];
 
 export function Header() {
   return (
-    <header className="sticky top-0 z-50 border-b border-white/[0.06] bg-surface/80 backdrop-blur-xl">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 h-14 sm:h-16 flex items-center justify-between gap-3">
+    <header className="sticky top-0 z-50 border-b border-zinc-800 bg-zinc-950/95 backdrop-blur-md">
+      <div className="mx-auto flex h-14 max-w-5xl items-center justify-between gap-4 px-4 sm:px-6">
         <Logo />
 
-        <nav className="hidden md:flex items-center gap-8 text-sm text-surface-muted">
-          <a href="#tool" className="hover:text-white transition-colors">
-            Reclaim
-          </a>
-          <a href="#how-it-works" className="hover:text-white transition-colors">
-            How it works
-          </a>
-          <a href="#security" className="hover:text-white transition-colors">
-            Security
-          </a>
-          <a href="#faq" className="hover:text-white transition-colors">
-            FAQ
-          </a>
+        <nav className="hidden items-center gap-6 text-sm text-zinc-500 md:flex">
+          {NAV.map((item) => (
+            <a
+              key={item.href}
+              href={item.href}
+              className="transition-colors hover:text-zinc-50"
+            >
+              {item.label}
+            </a>
+          ))}
         </nav>
 
-        <div className="shrink-0">
-          <ConnectWallet className="btn-primary !px-4 !py-2.5 !min-h-[40px] !text-xs sm:!text-sm" />
-        </div>
+        <ConnectWallet
+          className={`${ui.btnPrimary} !min-h-[36px] !px-4 !py-2 !text-xs sm:!text-sm`}
+        />
       </div>
     </header>
   );

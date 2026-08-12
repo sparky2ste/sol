@@ -1,5 +1,6 @@
 import { PublicKey } from "@solana/web3.js";
 import type {
+  BurnableTokenAccount,
   EmptyTokenAccount,
   SkippedTokenAccount,
   ScanResult,
@@ -8,15 +9,33 @@ import type {
 export interface ScanApiResponse {
   wallet: string;
   totalRentLamports: number;
+  burnableRentLamports: number;
   skippedRentLamports: number;
   accounts: {
     pubkey: string;
     mint: string;
     programId: string;
     rentLamports: number;
-    tokenAmount?: string;
-    requiresBurn?: boolean;
-    decimals?: number;
+  }[];
+  burnableAccounts: {
+    pubkey: string;
+    mint: string;
+    programId: string;
+    rentLamports: number;
+    tokenAmount: string;
+    uiAmount: number | null;
+    decimals: number;
+    label: string;
+  }[];
+  protectedAccounts: {
+    pubkey: string;
+    mint: string;
+    programId: string;
+    rentLamports: number;
+    tokenAmount: string;
+    uiAmount: number | null;
+    label: string;
+    reason?: string;
   }[];
   skippedAccounts: {
     pubkey: string;
@@ -35,18 +54,30 @@ export interface ScanApiError {
   message: string;
 }
 
+function mapSkipped(
+  items: ScanApiResponse["skippedAccounts"]
+): SkippedTokenAccount[] {
+  return items.map((account) => ({
+    pubkey: new PublicKey(account.pubkey),
+    mint: new PublicKey(account.mint),
+    programId: new PublicKey(account.programId),
+    rentLamports: account.rentLamports,
+    tokenAmount: account.tokenAmount,
+    uiAmount: account.uiAmount,
+    label: account.label,
+    reason: account.reason,
+  }));
+}
+
 export function parseScanApiResponse(data: ScanApiResponse): ScanResult {
   const accounts: EmptyTokenAccount[] = data.accounts.map((account) => ({
     pubkey: new PublicKey(account.pubkey),
     mint: new PublicKey(account.mint),
     programId: new PublicKey(account.programId),
     rentLamports: account.rentLamports,
-    tokenAmount: account.tokenAmount,
-    requiresBurn: account.requiresBurn,
-    decimals: account.decimals,
   }));
 
-  const skippedAccounts: SkippedTokenAccount[] = data.skippedAccounts.map(
+  const burnableAccounts: BurnableTokenAccount[] = data.burnableAccounts.map(
     (account) => ({
       pubkey: new PublicKey(account.pubkey),
       mint: new PublicKey(account.mint),
@@ -54,15 +85,18 @@ export function parseScanApiResponse(data: ScanApiResponse): ScanResult {
       rentLamports: account.rentLamports,
       tokenAmount: account.tokenAmount,
       uiAmount: account.uiAmount,
+      decimals: account.decimals,
       label: account.label,
-      reason: account.reason,
     })
   );
 
   return {
     accounts,
-    skippedAccounts,
+    burnableAccounts,
+    protectedAccounts: mapSkipped(data.protectedAccounts ?? []),
+    skippedAccounts: mapSkipped(data.skippedAccounts ?? []),
     totalRentLamports: data.totalRentLamports,
+    burnableRentLamports: data.burnableRentLamports ?? 0,
     skippedRentLamports: data.skippedRentLamports,
     wallet: new PublicKey(data.wallet),
   };
