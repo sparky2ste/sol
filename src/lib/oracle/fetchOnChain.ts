@@ -178,8 +178,9 @@ export async function fetchOnChainHolderAnalysis(
     .reduce((sum, h) => sum + (supply > 0 ? (h.amount / supply) * 100 : 0), 0);
 
   const bundlerCandidates = walletHolders
-    .filter((w) => w.percent >= 0.8)
-    .slice(0, 2);
+    .filter((w) => w.percent >= 0.25)
+    .sort((a, b) => b.percent - a.percent)
+    .slice(0, 8);
 
   if (bundlerCandidates.length > 0) {
     const balances = await connection.getMultipleAccountsInfo(
@@ -187,17 +188,20 @@ export async function fetchOnChainHolderAnalysis(
       "confirmed"
     );
 
+    const sigCheckLimit = Math.min(5, bundlerCandidates.length);
+
     for (let i = 0; i < bundlerCandidates.length; i++) {
       const wallet = bundlerCandidates[i];
       const solBalance = balances[i]?.lamports ?? 0;
       const tags: string[] = [];
+      let isSniper = false;
 
-      if (solBalance < 50_000_000 && wallet.percent >= 0.5) {
+      if (solBalance < 80_000_000 && wallet.percent >= 0.4) {
         tags.push("Low SOL wallet");
-        botLikePercent = Math.min(100, botLikePercent + wallet.percent * 0.3);
+        botLikePercent = Math.min(100, botLikePercent + wallet.percent * 0.35);
       }
 
-      if (pairCreatedAt && wallet.percent >= 1) {
+      if (i < sigCheckLimit && pairCreatedAt && wallet.percent >= 0.5) {
         try {
           const sigs = await connection.getSignaturesForAddress(
             new PublicKey(wallet.address),
@@ -206,19 +210,34 @@ export async function fetchOnChainHolderAnalysis(
           const oldest = sigs[sigs.length - 1]?.blockTime;
           if (
             oldest &&
-            oldest * 1000 < pairCreatedAt + 10 * 60 * 1000
+            oldest * 1000 < pairCreatedAt + 15 * 60 * 1000
           ) {
             tags.push("Early buyer");
+            isSniper = true;
             bundlerSignals.push({
               address: wallet.address,
               percent: wallet.percent,
               reason:
-                "Bought within ~10 min of pool creation. Possible sniper/bundler.",
+                "Bought within ~15 min of pool creation. Sniper/bundler.",
             });
           }
         } catch {
           // Skip signature lookup failures
         }
+      }
+
+      if (
+        !isSniper &&
+        solBalance < 30_000_000 &&
+        wallet.percent >= 1.5 &&
+        pairCreatedAt
+      ) {
+        tags.push("Likely sniper");
+        bundlerSignals.push({
+          address: wallet.address,
+          percent: wallet.percent,
+          reason: "Fresh wallet with low SOL holding a large bag.",
+        });
       }
 
       const holder = topHolders.find((t) => t.address === wallet.address);
