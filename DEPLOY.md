@@ -20,9 +20,9 @@
 | Name | Where | Value |
 |---|---|---|
 | `HELIUS_API_KEY` | **Build** → Variables and secrets (encrypted) | Your Helius key |
-| `HELIUS_API_KEY` | Also set under **Settings** → **Variables and Secrets** if not using the deploy script | Same key |
+| `TURNSTILE_SECRET` | **Build** → Variables and secrets (encrypted) | Turnstile widget secret (Cloudflare → Turnstile → your widget) |
 
-The deploy script uploads `HELIUS_API_KEY` from build secrets to the live worker on every deploy.
+The deploy script uploads `HELIUS_API_KEY` and `TURNSTILE_SECRET` from build secrets to the live worker on every deploy.
 
 The fee wallet (`8SHY8J3gy6L9aaZzmQdR4JJTgZXBH3ArkJVWKw1ES9eH`) is baked into the codebase and `wrangler.jsonc`. Do not remove it.
 

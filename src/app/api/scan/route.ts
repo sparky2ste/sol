@@ -7,6 +7,8 @@ import {
   isValidSolanaAddress,
 } from "@/lib/solana/rpc";
 import { getClientIp, rateLimit, rateLimitResponse } from "@/lib/rateLimit";
+import { TURNSTILE_ACTION_SCAN } from "@/lib/turnstile/config";
+import { verifyTurnstileToken } from "@/lib/turnstile/verify";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -16,6 +18,19 @@ export async function GET(request: NextRequest) {
   const limited = rateLimit(`scan:${ip}`, 30, 60_000);
   if (!limited.ok) {
     return rateLimitResponse(limited.retryAfterSec);
+  }
+
+  const turnstileToken = request.headers.get("cf-turnstile-response");
+  const turnstile = await verifyTurnstileToken(
+    turnstileToken,
+    TURNSTILE_ACTION_SCAN,
+    ip
+  );
+  if (!turnstile.ok) {
+    return NextResponse.json(
+      { error: "TURNSTILE_FAILED", message: turnstile.message },
+      { status: 403 }
+    );
   }
 
   const wallet = request.nextUrl.searchParams.get("wallet");

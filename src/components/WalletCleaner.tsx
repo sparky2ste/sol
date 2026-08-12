@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import { ConnectWallet } from "@/components/ConnectWallet";
+import { TurnstileWidget } from "@/components/TurnstileWidget";
 import { BurnModule } from "@/components/BurnModule";
 import type { ScanResult } from "@/lib/solana/scanEmptyAccounts";
 import { scanWalletViaApi } from "@/lib/solana/scanWalletApi";
@@ -37,6 +38,7 @@ export function WalletCleaner() {
   const [rpcConfigured, setRpcConfigured] = useState<boolean | null>(null);
   const [walletBalance, setWalletBalance] = useState<number | null>(null);
   const [tab, setTab] = useState<"reclaim" | "burn">("reclaim");
+  const [turnstileResetKey, setTurnstileResetKey] = useState(0);
 
   const feeWallet = useMemo(() => getFeeWallet(), []);
 
@@ -52,38 +54,55 @@ export function WalletCleaner() {
     return buildReclaimSummary(scanResult.accounts, publicKey);
   }, [scanResult, publicKey]);
 
-  const scanWallet = useCallback(async () => {
-    if (!publicKey || !rpcConfigured) return;
+  const scanWallet = useCallback(
+    async (turnstileToken: string) => {
+      if (!publicKey || !rpcConfigured) return;
 
-    setLoading(true);
-    setError(null);
-    setNotice(null);
-    setSuccess(null);
+      setLoading(true);
+      setError(null);
+      setNotice(null);
+      setSuccess(null);
 
-    try {
-      const result = await scanWalletViaApi(publicKey.toBase58());
-      setScanResult(result);
-      const balance = await connection.getBalance(publicKey, "confirmed");
-      setWalletBalance(balance);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to scan wallet");
-      setScanResult(null);
-    } finally {
-      setLoading(false);
-    }
-  }, [publicKey, rpcConfigured, connection]);
+      try {
+        const result = await scanWalletViaApi(
+          publicKey.toBase58(),
+          turnstileToken
+        );
+        setScanResult(result);
+        const balance = await connection.getBalance(publicKey, "confirmed");
+        setWalletBalance(balance);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to scan wallet");
+        setScanResult(null);
+      } finally {
+        setLoading(false);
+        setTurnstileResetKey((key) => key + 1);
+      }
+    },
+    [publicKey, rpcConfigured, connection]
+  );
+
+  const handleTurnstileToken = useCallback(
+    (token: string) => {
+      if (connected && publicKey && rpcConfigured && !loading) {
+        void scanWallet(token);
+      }
+    },
+    [connected, publicKey, rpcConfigured, loading, scanWallet]
+  );
+
+  const requestRescan = useCallback(() => {
+    setTurnstileResetKey((key) => key + 1);
+  }, []);
 
   useEffect(() => {
     if (!connected || !publicKey) {
       setScanResult(null);
       setSuccess(null);
       setError(null);
-      return;
+      setTurnstileResetKey((key) => key + 1);
     }
-    if (rpcConfigured) {
-      scanWallet();
-    }
-  }, [connected, publicKey, rpcConfigured, scanWallet]);
+  }, [connected, publicKey]);
 
   const handleClaim = async () => {
     if (!publicKey || !signTransaction || !scanResult?.accounts.length) return;
@@ -118,7 +137,7 @@ export function WalletCleaner() {
       );
 
       setSuccess(signatures);
-      await scanWallet();
+      setTurnstileResetKey((key) => key + 1);
     } catch (err) {
       if (isWalletUserRejection(err)) {
         setNotice("Transaction cancelled in your wallet. No SOL was moved.");
@@ -198,9 +217,10 @@ export function WalletCleaner() {
         </div>
         <button
           type="button"
-          onClick={scanWallet}
+          onClick={requestRescan}
           disabled={loading || !rpcConfigured}
           className={`${ui.btnSecondary} disabled:opacity-40`}
+        >
         >
           {loading ? (
             <>
@@ -217,6 +237,18 @@ export function WalletCleaner() {
           )}
         </button>
       </div>
+
+      {rpcConfigured !== false && (
+        <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 px-4 py-3">
+          <p className="mb-2 text-center text-xs text-surface-muted">
+            Complete the check below to scan your wallet.
+          </p>
+          <TurnstileWidget
+            resetKey={turnstileResetKey}
+            onToken={handleTurnstileToken}
+          />
+        </div>
+      )}
 
       {error && <Alert type="error" message={error} />}
       {notice && <Alert type="info" message={notice} />}
@@ -244,7 +276,7 @@ export function WalletCleaner() {
         tab === "burn" ? (
           <BurnModule
             scanResult={scanResult}
-            onRescan={scanWallet}
+            onRescan={requestRescan}
             loading={loading}
             rpcConfigured={!!rpcConfigured}
           />
@@ -254,7 +286,7 @@ export function WalletCleaner() {
             scanResult={scanResult}
             summary={summary}
             loading={loading}
-            onRescan={scanWallet}
+            onRescan={requestRescan}
             rpcConfigured={!!rpcConfigured}
           />
 

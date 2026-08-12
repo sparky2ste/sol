@@ -1,18 +1,20 @@
 import { execSync } from "node:child_process";
 
-const key = process.env.HELIUS_API_KEY?.trim();
+function putSecret(name, value) {
+  if (!value) {
+    console.warn(`${name} not in build env — skipping secret upload.`);
+    return;
+  }
 
-if (key) {
-  console.log("Setting HELIUS_API_KEY worker secret...");
-  execSync("npx wrangler secret put HELIUS_API_KEY", {
+  console.log(`Setting ${name} worker secret...`);
+  execSync(`npx wrangler secret put ${name}`, {
     stdio: ["pipe", "inherit", "inherit"],
-    input: key,
+    input: value,
   });
-} else {
-  console.warn(
-    "HELIUS_API_KEY not in build env — skipping secret upload. Add it to Workers Builds secrets."
-  );
 }
+
+putSecret("HELIUS_API_KEY", process.env.HELIUS_API_KEY?.trim());
+putSecret("TURNSTILE_SECRET", process.env.TURNSTILE_SECRET?.trim());
 
 console.log("Deploying worker...");
 execSync("npx wrangler deploy --keep-vars", { stdio: "inherit" });

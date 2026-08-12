@@ -32,6 +32,12 @@ The Helius API key was committed in `wrangler.jsonc` to fix deploy issues. Anyon
 2. Update `HELIUS_API_KEY` in Cloudflare **Variables and Secrets** (or `wrangler.jsonc` vars)
 3. Redeploy
 
+### Turnstile (wallet scan)
+
+Site key is in `wrangler.jsonc` as `NEXT_PUBLIC_TURNSTILE_SITE_KEY`.
+
+Add **`TURNSTILE_SECRET`** from Cloudflare → **Turnstile** → your widget → **Secret key** to Workers Builds secrets (same place as `HELIUS_API_KEY`).
+
 ---
 
 ## Report a vulnerability

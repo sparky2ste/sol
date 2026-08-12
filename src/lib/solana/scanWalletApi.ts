@@ -103,11 +103,15 @@ export function parseScanApiResponse(data: ScanApiResponse): ScanResult {
 }
 
 export async function scanWalletViaApi(
-  walletAddress: string
+  walletAddress: string,
+  turnstileToken: string
 ): Promise<ScanResult> {
   const response = await fetch(
     `/api/scan?wallet=${encodeURIComponent(walletAddress)}`,
-    { cache: "no-store" }
+    {
+      cache: "no-store",
+      headers: { "cf-turnstile-response": turnstileToken },
+    }
   );
 
   const data = await response.json();
