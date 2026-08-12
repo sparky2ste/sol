@@ -23,10 +23,6 @@ export default function Home() {
         <AnimateIn>
           <section id="tool" className="pb-12">
             <div className={`${ui.card} p-6 sm:p-8`}>
-              <div className="mb-8">
-                <p className={`${ui.label} mb-1`}>Wallet tool</p>
-                <h2 className={`${ui.heading} text-xl`}>Scan & reclaim</h2>
-              </div>
               <WalletCleaner />
             </div>
           </section>

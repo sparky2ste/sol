@@ -32,9 +32,11 @@ function openExternal(url: string): void {
 export function ConnectWallet({
   className,
   layout = "inline",
+  showSecondary = true,
 }: {
   className?: string;
   layout?: "inline" | "stack";
+  showSecondary?: boolean;
 }) {
   const {
     publicKey,
@@ -217,7 +219,8 @@ export function ConnectWallet({
         : "Get Solflare";
 
   const showSolflare =
-    isStack || !mounted || solflareInstalled || !phantomInstalled;
+    showSecondary &&
+    (isStack || !mounted || solflareInstalled || !phantomInstalled);
 
   return (
     <div className={containerClass}>

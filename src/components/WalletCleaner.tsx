@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import { ConnectWallet } from "@/components/ConnectWallet";
+import { Mascot } from "@/components/Mascot";
 import { TurnstileWidget } from "@/components/TurnstileWidget";
 import { BurnModule } from "@/components/BurnModule";
 import type { ScanResult } from "@/lib/solana/scanEmptyAccounts";
@@ -154,31 +155,17 @@ export function WalletCleaner() {
 
   if (!connected) {
     return (
-      <div className="text-center py-10 sm:py-14">
-        <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-brand-400/10 mb-5">
-          <svg
-            className="w-7 h-7 text-brand-400"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-            strokeWidth={1.5}
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"
-            />
-          </svg>
-        </div>
-        <h3 className="font-display text-xl font-semibold mb-2">
+      <div className="py-8 text-center sm:py-10">
+        <Mascot size="md" className="mb-4" />
+        <h3 className="mb-2 font-display text-xl font-semibold">
           Connect your wallet
         </h3>
-        <p className="text-surface-muted text-sm max-w-sm mx-auto mb-8">
+        <p className={`mx-auto mb-8 max-w-sm text-sm ${ui.muted}`}>
           Link Phantom or Solflare to scan for empty accounts.
         </p>
         <ConnectWallet layout="stack" />
-        <p className="text-xs text-surface-muted/70 mt-6 max-w-sm mx-auto leading-relaxed">
-          On mobile, tap <strong className="text-surface-muted">Open in Phantom</strong>{" "}
+        <p className={`mx-auto mt-6 max-w-sm text-xs leading-relaxed ${ui.muted}`}>
+          On mobile, tap <strong className="text-zinc-400">Open in Phantom</strong>{" "}
           to use the in-app browser. We never ask for your seed phrase.
         </p>
       </div>

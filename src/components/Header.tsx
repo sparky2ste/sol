@@ -30,6 +30,7 @@ export function Header() {
         </nav>
 
         <ConnectWallet
+          showSecondary={false}
           className={`${ui.btnPrimary} !min-h-[36px] !px-4 !py-2 !text-xs sm:!text-sm`}
         />
       </div>

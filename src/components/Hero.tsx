@@ -1,6 +1,7 @@
 "use client";
 
 import { AnimateIn } from "@/components/AnimateIn";
+import { Mascot } from "@/components/Mascot";
 import { ui } from "@/lib/ui";
 
 const TRUST_ITEMS = [
@@ -12,48 +13,57 @@ const TRUST_ITEMS = [
 
 export function Hero() {
   return (
-    <section className="relative px-2 pt-16 pb-12 text-center sm:pt-24 sm:pb-16">
+    <section className="relative overflow-hidden px-2 pt-12 pb-10 sm:pt-16 sm:pb-14">
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-x-0 -top-24 -z-10 mx-auto h-72 max-w-3xl bg-[radial-gradient(ellipse_at_center,rgba(20,241,149,0.14),transparent_70%)] blur-2xl"
+        className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[420px] bg-[radial-gradient(ellipse_70%_55%_at_50%_0%,rgba(20,241,149,0.1),transparent_65%)]"
       />
 
-      <AnimateIn>
-        <p className={`${ui.label} mb-4`}>Solana wallet utility</p>
-      </AnimateIn>
+      <div className="grid items-center gap-10 lg:grid-cols-[1.05fr_0.95fr] lg:gap-12">
+        <div className="text-center lg:text-left">
+          <AnimateIn>
+            <h1
+              className={`${ui.heading} mx-auto mb-5 max-w-xl text-4xl leading-[1.08] sm:text-5xl lg:mx-0 lg:max-w-none lg:text-[3.25rem]`}
+            >
+              Close empty accounts,{" "}
+              <span className="text-[#14F195]">recover locked rent</span>
+            </h1>
+          </AnimateIn>
 
-      <AnimateIn delay={80}>
-        <h1
-          className={`${ui.heading} mx-auto mb-6 max-w-3xl text-4xl leading-[1.05] sm:text-5xl lg:text-6xl`}
-        >
-          Close empty token accounts,{" "}
-          <span className="text-[#14F195]">recover locked rent</span>
-        </h1>
-      </AnimateIn>
+          <AnimateIn delay={100}>
+            <p
+              className={`mx-auto mb-8 max-w-lg text-base leading-relaxed sm:text-lg lg:mx-0 ${ui.muted}`}
+            >
+              Vacant SPL accounts lock SOL as rent. Scan, review, and reclaim
+              in one signed transaction.
+            </p>
+          </AnimateIn>
 
-      <AnimateIn delay={160}>
-        <p className={`mx-auto mb-10 max-w-xl text-base leading-relaxed sm:text-lg ${ui.muted}`}>
-          Scan your wallet for vacant SPL accounts, review the breakdown, and
-          reclaim SOL in one signed transaction.
-        </p>
-      </AnimateIn>
+          <AnimateIn delay={180}>
+            <div className="mb-8 flex flex-wrap justify-center gap-2 lg:justify-start">
+              {TRUST_ITEMS.map((item) => (
+                <span key={item} className={ui.pill}>
+                  <span className="h-1 w-1 rounded-full bg-[#14F195]" />
+                  {item}
+                </span>
+              ))}
+            </div>
+          </AnimateIn>
 
-      <AnimateIn delay={240}>
-        <div className="mb-10 flex flex-wrap justify-center gap-2">
-          {TRUST_ITEMS.map((item) => (
-            <span key={item} className={ui.pill}>
-              <span className="h-1 w-1 rounded-full bg-[#14F195]" />
-              {item}
-            </span>
-          ))}
+          <AnimateIn delay={260}>
+            <a
+              href="#tool"
+              className={`${ui.btnPrimary} px-8 shadow-soft`}
+            >
+              Get started
+            </a>
+          </AnimateIn>
         </div>
-      </AnimateIn>
 
-      <AnimateIn delay={320}>
-        <a href="#tool" className={`${ui.btnPrimary} px-8 shadow-soft`}>
-          Get started
-        </a>
-      </AnimateIn>
+        <AnimateIn delay={120} className="flex justify-center lg:justify-end">
+          <Mascot size="hero" priority />
+        </AnimateIn>
+      </div>
     </section>
   );
 }
