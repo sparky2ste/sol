@@ -11,7 +11,9 @@
 | **Build command** | `npm run build` |
 | **Deploy command** | `npx wrangler deploy` |
 
-Or use full clean build: `node scripts/cf-build.mjs`
+`npm run build` runs a full Next.js + OpenNext bundle. In CI it clears stale `.next` / `.open-next` cache automatically.
+
+**If deploy still fails:** turn off **build cache** in Cloudflare Workers settings, then redeploy.
 
 **Environment variables:**
 
@@ -19,8 +21,6 @@ Or use full clean build: `node scripts/cf-build.mjs`
 |---|---|
 | `HELIUS_API_KEY` | Your Helius key |
 | `NEXT_PUBLIC_FEE_WALLET` | Solana wallet for 1% fees |
-
-Turn off **build cache** if deploy fails with missing `.next/standalone` errors.
 
 ## Custom domain flagged as phishing?
 

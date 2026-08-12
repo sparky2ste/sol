@@ -3,38 +3,42 @@ import fs from "node:fs";
 import path from "node:path";
 
 const openNextOnly = process.argv.includes("--opennext-only");
+const isCi =
+  process.env.CI === "true" ||
+  process.env.CF_PAGES === "1" ||
+  process.env.WORKERS_CI === "1";
 
-const standaloneManifest = ".next/standalone/.next/server/pages-manifest.json";
-const rootManifest = ".next/server/pages-manifest.json";
+const standaloneDir = ".next/standalone";
+
+function hasStandaloneOutput() {
+  return (
+    fs.existsSync(standaloneDir) &&
+    fs.existsSync(".next/standalone/.next/server/pages-manifest.json")
+  );
+}
 
 function runNextBuild() {
   console.log("Running next build (standalone)...");
   execSync("next build", { stdio: "inherit" });
 }
 
-function ensureStandaloneManifest() {
-  if (!fs.existsSync(standaloneManifest)) {
-    if (fs.existsSync(rootManifest)) {
-      console.log("Copying pages-manifest.json into standalone output...");
-      fs.mkdirSync(path.dirname(standaloneManifest), { recursive: true });
-      fs.copyFileSync(rootManifest, standaloneManifest);
-      return;
-    }
+function ensureStandaloneOutput() {
+  if (hasStandaloneOutput()) {
+    return;
+  }
 
-    if (openNextOnly && fs.existsSync(".next")) {
-      console.log("Stale build cache detected — rebuilding Next.js output...");
-      fs.rmSync(".next", { recursive: true, force: true });
-      runNextBuild();
-    }
+  if (fs.existsSync(".next")) {
+    console.log(
+      "Incomplete .next output (missing standalone) — clearing and rebuilding..."
+    );
+    fs.rmSync(".next", { recursive: true, force: true });
+  }
 
-    if (fs.existsSync(rootManifest)) {
-      fs.mkdirSync(path.dirname(standaloneManifest), { recursive: true });
-      fs.copyFileSync(rootManifest, standaloneManifest);
-      return;
-    }
+  runNextBuild();
 
+  if (!hasStandaloneOutput()) {
     throw new Error(
-      `Missing ${standaloneManifest}. Disable Cloudflare build cache and redeploy.`
+      "Next.js did not produce .next/standalone. Check next.config.ts has output: 'standalone' and disable Cloudflare build cache."
     );
   }
 }
@@ -47,17 +51,21 @@ function runOpenNextBundle() {
 
   fs.rmSync(".open-next", { recursive: true, force: true });
   console.log("Running OpenNext bundle...");
-  execSync("opennextjs-cloudflare build --skipNextBuild", { stdio: "inherit" });
+  execSync("opennextjs-cloudflare build --skipNextBuild", {
+    stdio: "inherit",
+  });
 }
 
 if (openNextOnly) {
-  ensureStandaloneManifest();
+  ensureStandaloneOutput();
   runOpenNextBundle();
 } else {
-  for (const dir of [".next", ".open-next"]) {
-    fs.rmSync(dir, { recursive: true, force: true });
+  if (isCi || !hasStandaloneOutput()) {
+    for (const dir of [".next", ".open-next"]) {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
   }
   runNextBuild();
-  ensureStandaloneManifest();
+  ensureStandaloneOutput();
   runOpenNextBundle();
 }
