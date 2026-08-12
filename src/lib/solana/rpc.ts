@@ -1,11 +1,13 @@
 import { Connection, PublicKey } from "@solana/web3.js";
+import { getServerEnv } from "./env";
 
 export function getServerRpcUrl(): string {
-  if (process.env.HELIUS_API_KEY) {
-    return `https://mainnet.helius-rpc.com/?api-key=${process.env.HELIUS_API_KEY}`;
+  const heliusKey = getServerEnv("HELIUS_API_KEY");
+  if (heliusKey) {
+    return `https://mainnet.helius-rpc.com/?api-key=${heliusKey}`;
   }
 
-  const url = process.env.SOLANA_RPC_URL?.trim();
+  const url = getServerEnv("SOLANA_RPC_URL");
   if (!url) return "";
 
   const blocked =

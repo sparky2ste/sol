@@ -9,7 +9,7 @@
 | Setting | Value |
 |---|---|
 | **Build command** | `npm run build` |
-| **Deploy command** | `npx wrangler deploy` |
+| **Deploy command** | `npx wrangler deploy --keep-vars` |
 
 `npm run build` runs a full Next.js + OpenNext bundle. In CI it clears stale `.next` / `.open-next` cache automatically.
 
@@ -20,6 +20,8 @@
 | Name | Where | Value |
 |---|---|---|
 | `HELIUS_API_KEY` | **Variables and Secrets** (encrypted, runtime) | Your Helius key from [helius.dev](https://helius.dev) |
+
+After adding the secret, redeploy. Use `--keep-vars` on deploy so dashboard secrets are not wiped.
 
 The fee wallet (`8SHY8J3gy6L9aaZzmQdR4JJTgZXBH3ArkJVWKw1ES9eH`) is baked into the codebase and `wrangler.jsonc`. Do not remove it.
 
