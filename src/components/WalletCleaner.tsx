@@ -8,6 +8,7 @@ import { scanWalletViaApi } from "@/lib/solana/scanWalletApi";
 import {
   buildReclaimSummary,
   buildReclaimTransactions,
+  isWalletUserRejection,
   sendReclaimTransactions,
   WALLET_RENT_RESERVE_LAMPORTS,
 } from "@/lib/solana/buildReclaimTransaction";
@@ -29,6 +30,7 @@ export function WalletCleaner() {
     total: number;
   } | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const [success, setSuccess] = useState<string[] | null>(null);
   const [rpcConfigured, setRpcConfigured] = useState<boolean | null>(null);
   const [walletBalance, setWalletBalance] = useState<number | null>(null);
@@ -52,6 +54,7 @@ export function WalletCleaner() {
 
     setLoading(true);
     setError(null);
+    setNotice(null);
     setSuccess(null);
 
     try {
@@ -99,6 +102,7 @@ export function WalletCleaner() {
     setClaiming(true);
     setClaimProgress(null);
     setError(null);
+    setNotice(null);
     setSuccess(null);
 
     try {
@@ -120,7 +124,13 @@ export function WalletCleaner() {
       setSuccess(signatures);
       await scanWallet();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Transaction failed");
+      if (isWalletUserRejection(err)) {
+        setNotice("Transaction cancelled in your wallet. No SOL was moved.");
+        setError(null);
+      } else {
+        setError(err instanceof Error ? err.message : "Transaction failed");
+        setNotice(null);
+      }
     } finally {
       setClaiming(false);
       setClaimProgress(null);
@@ -200,6 +210,7 @@ export function WalletCleaner() {
       </div>
 
       {error && <Alert type="error" message={error} />}
+      {notice && <Alert type="info" message={notice} />}
       {success && <SuccessAlert signatures={success} />}
 
       {walletBalance !== null &&
@@ -345,9 +356,14 @@ function RpcSetupBanner() {
   );
 }
 
-function Alert({ type, message }: { type: "error"; message: string }) {
+function Alert({ type, message }: { type: "error" | "info"; message: string }) {
+  const styles =
+    type === "error"
+      ? "border-red-500/25 bg-red-500/8 text-red-300"
+      : "border-blue-500/25 bg-blue-500/8 text-blue-200/90";
+
   return (
-    <div className="flex items-start gap-3 rounded-xl border border-red-500/25 bg-red-500/8 p-4 text-sm text-red-300">
+    <div className={`flex items-start gap-3 rounded-xl border p-4 text-sm ${styles}`}>
       <svg className="w-5 h-5 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
       </svg>

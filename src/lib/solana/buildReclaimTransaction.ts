@@ -289,7 +289,23 @@ export async function buildReclaimTransactions(
   return { transactions, summary };
 }
 
+export function isWalletUserRejection(err: unknown): boolean {
+  if (!err || typeof err !== "object") return false;
+  const name = "name" in err ? String(err.name) : "";
+  const message =
+    "message" in err && typeof err.message === "string" ? err.message : "";
+  return (
+    name === "WalletSignTransactionError" ||
+    /user rejected|rejected the request|transaction cancelled|transaction canceled|request rejected|denied|4001|no sol was moved/i.test(
+      message
+    )
+  );
+}
+
 export function formatTransactionError(err: unknown): string {
+  if (isWalletUserRejection(err)) {
+    return "Transaction cancelled in your wallet. No SOL was moved.";
+  }
   if (err instanceof SendTransactionError) {
     const logs = err.logs?.join("\n") ?? "";
     if (logs.includes("insufficient funds for rent")) {
