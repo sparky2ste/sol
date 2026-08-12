@@ -1,4 +1,4 @@
-# Security hardening — SOL Reclaim
+# Security hardening: SOL Reclaim
 
 ## Turn on Bot Fight Mode (do this now)
 
@@ -10,17 +10,17 @@ Your site is live and working. Enable this next:
 
 This blocks obvious bad bots before they hit your API. Safe to enable anytime after deploy.
 
-Optional later: **AI Labyrinth** (Security → Bots) — low priority.
+Optional later: **AI Labyrinth** (Security → Bots). Low priority.
 
 ---
 
 ## What the app protects
 
-- **Non-custodial** — never asks for seed phrases or private keys
-- **RPC proxy locked down** — only allowed JSON-RPC methods, size limits, host check
+- **Non-custodial**: never asks for seed phrases or private keys
+- **RPC proxy locked down**: only allowed JSON-RPC methods, size limits, host check
 - **Rate limits** on `/api/scan`, `/api/rpc`, `/api/status`, `/api/claims/recent`
-- **Security headers** — X-Frame-Options, nosniff, HSTS, etc.
-- **security.txt** — `https://solreclaim.app/.well-known/security.txt`
+- **Security headers**: X-Frame-Options, nosniff, HSTS, etc.
+- **security.txt**: `https://solreclaim.app/.well-known/security.txt`
 
 ---
 

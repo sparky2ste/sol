@@ -8,6 +8,12 @@ import {
 } from "@/lib/solana/rpc";
 import { getClientIp, rateLimit, rateLimitResponse } from "@/lib/rateLimit";
 import { TURNSTILE_ACTION_SCAN } from "@/lib/turnstile/config";
+import {
+  createVerificationSessionToken,
+  isVerificationSessionValid,
+  verificationSessionCookieOptions,
+  VERIFICATION_SESSION_COOKIE,
+} from "@/lib/turnstile/session";
 import { verifyTurnstileToken } from "@/lib/turnstile/verify";
 
 export const dynamic = "force-dynamic";
@@ -20,17 +26,24 @@ export async function GET(request: NextRequest) {
     return rateLimitResponse(limited.retryAfterSec);
   }
 
-  const turnstileToken = request.headers.get("cf-turnstile-response");
-  const turnstile = await verifyTurnstileToken(
-    turnstileToken,
-    TURNSTILE_ACTION_SCAN,
-    ip
-  );
-  if (!turnstile.ok) {
-    return NextResponse.json(
-      { error: "TURNSTILE_FAILED", message: turnstile.message },
-      { status: 403 }
+  const sessionToken = request.cookies.get(VERIFICATION_SESSION_COOKIE)?.value;
+  const hasValidSession = isVerificationSessionValid(sessionToken);
+  let issueSession = false;
+
+  if (!hasValidSession) {
+    const turnstileToken = request.headers.get("cf-turnstile-response");
+    const turnstile = await verifyTurnstileToken(
+      turnstileToken,
+      TURNSTILE_ACTION_SCAN,
+      ip
     );
+    if (!turnstile.ok) {
+      return NextResponse.json(
+        { error: "TURNSTILE_FAILED", message: turnstile.message },
+        { status: 403 }
+      );
+    }
+    issueSession = true;
   }
 
   const wallet = request.nextUrl.searchParams.get("wallet");
@@ -65,7 +78,7 @@ export async function GET(request: NextRequest) {
     const pubkey = new PublicKey(wallet);
     const result = await scanEmptyAccounts(connection, pubkey);
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       wallet: result.wallet.toBase58(),
       totalRentLamports: result.totalRentLamports,
       burnableRentLamports: result.burnableRentLamports,
@@ -107,6 +120,15 @@ export async function GET(request: NextRequest) {
         reason: account.reason,
       })),
     });
+
+    if (issueSession) {
+      const token = createVerificationSessionToken();
+      if (token) {
+        response.cookies.set(verificationSessionCookieOptions(token));
+      }
+    }
+
+    return response;
   } catch (err) {
     const message =
       err instanceof Error ? err.message : "Failed to scan wallet";

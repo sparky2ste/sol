@@ -29,7 +29,7 @@ function ensureStandaloneOutput() {
 
   if (fs.existsSync(".next")) {
     console.log(
-      "Incomplete .next output (missing standalone) — clearing and rebuilding..."
+      "Incomplete .next output (missing standalone). Clearing and rebuilding..."
     );
     fs.rmSync(".next", { recursive: true, force: true });
   }

@@ -33,7 +33,7 @@ New crypto domains are often false positives. Request review:
 - [Google Safe Browsing report](https://safebrowsing.google.com/safebrowsing/report_error/)
 - [VirusTotal contact](https://www.virustotal.com/gui/contact-us)
 
-Use your `.workers.dev` URL while waiting (2–7 days).
+Use your `.workers.dev` URL while waiting (2-7 days).
 
 ## Local dev
 

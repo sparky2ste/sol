@@ -12,13 +12,13 @@ const COPY: Record<
 > = {
   reclaim: {
     title: "SOL reclaimed!",
-    subtitle: "Your empty accounts are closed and rent is back in your wallet.",
-    cta: "Nice — scan again",
+    subtitle: "Thanks for using SOL Reclaim. Your rent is back in your wallet.",
+    cta: "Come again anytime",
   },
   burn: {
     title: "Burn complete!",
-    subtitle: "Tokens burned and locked rent recovered to your wallet.",
-    cta: "Done — scan again",
+    subtitle: "Thanks! Tokens burned and locked rent recovered to your wallet.",
+    cta: "Come again anytime",
   },
 };
 

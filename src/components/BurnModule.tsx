@@ -61,8 +61,11 @@ export function BurnModule({
     setAcknowledged(false);
     setError(null);
     setNotice(null);
-    setSuccess(null);
   }, [walletKey, burnable.length]);
+
+  useEffect(() => {
+    setSuccess(null);
+  }, [walletKey]);
 
   const selectedAccounts = useMemo(
     () => burnable.filter((a) => selected.has(a.pubkey.toBase58())),
@@ -124,7 +127,6 @@ export function BurnModule({
         amountLamports: receivedLamports,
       });
       setSelected(new Set());
-      onRescan();
     } catch (err) {
       if (isWalletUserRejection(err)) {
         setNotice("Burn cancelled in your wallet. No tokens were burned.");
@@ -145,7 +147,6 @@ export function BurnModule({
     selectedAccounts,
     feeWallet,
     connection,
-    onRescan,
     summary,
   ]);
 
@@ -212,7 +213,10 @@ export function BurnModule({
           kind="burn"
           signatures={success.signatures}
           amountLamports={success.amountLamports}
-          onDismiss={() => setSuccess(null)}
+          onDismiss={() => {
+            setSuccess(null);
+            onRescan();
+          }}
         />
       )}
 

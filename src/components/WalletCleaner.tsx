@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import { ConnectWallet } from "@/components/ConnectWallet";
 import { Mascot } from "@/components/Mascot";
@@ -43,7 +43,10 @@ export function WalletCleaner() {
   const [rpcConfigured, setRpcConfigured] = useState<boolean | null>(null);
   const [walletBalance, setWalletBalance] = useState<number | null>(null);
   const [tab, setTab] = useState<"reclaim" | "burn">("reclaim");
+  const [needsTurnstile, setNeedsTurnstile] = useState(false);
   const [turnstileResetKey, setTurnstileResetKey] = useState(0);
+  const scanInFlightRef = useRef(false);
+  const autoScannedWalletRef = useRef<string | null>(null);
 
   const feeWallet = useMemo(() => getFeeWallet(), []);
 
@@ -60,13 +63,16 @@ export function WalletCleaner() {
   }, [scanResult, publicKey]);
 
   const scanWallet = useCallback(
-    async (turnstileToken: string) => {
-      if (!publicKey || !rpcConfigured) return;
+    async (turnstileToken?: string, options?: { keepSuccess?: boolean }) => {
+      if (!publicKey || !rpcConfigured || scanInFlightRef.current) return;
 
+      scanInFlightRef.current = true;
       setLoading(true);
       setError(null);
       setNotice(null);
-      setSuccess(null);
+      if (!options?.keepSuccess) {
+        setSuccess(null);
+      }
 
       try {
         const result = await scanWalletViaApi(
@@ -74,14 +80,20 @@ export function WalletCleaner() {
           turnstileToken
         );
         setScanResult(result);
+        setNeedsTurnstile(false);
         const balance = await connection.getBalance(publicKey, "confirmed");
         setWalletBalance(balance);
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to scan wallet");
+        const apiError = err as Error & { code?: string };
+        if (apiError.code === "TURNSTILE_FAILED") {
+          setNeedsTurnstile(true);
+          setTurnstileResetKey((key) => key + 1);
+        }
+        setError(apiError.message ?? "Failed to scan wallet");
         setScanResult(null);
       } finally {
         setLoading(false);
-        setTurnstileResetKey((key) => key + 1);
+        scanInFlightRef.current = false;
       }
     },
     [publicKey, rpcConfigured, connection]
@@ -89,25 +101,51 @@ export function WalletCleaner() {
 
   const handleTurnstileToken = useCallback(
     (token: string) => {
-      if (connected && publicKey && rpcConfigured && !loading) {
+      if (connected && publicKey && rpcConfigured && !scanInFlightRef.current) {
         void scanWallet(token);
       }
     },
-    [connected, publicKey, rpcConfigured, loading, scanWallet]
+    [connected, publicKey, rpcConfigured, scanWallet]
   );
 
   const requestRescan = useCallback(() => {
-    setTurnstileResetKey((key) => key + 1);
-  }, []);
+    setScanResult(null);
+    setWalletBalance(null);
+    setError(null);
+    setNotice(null);
+    if (needsTurnstile) return;
+    autoScannedWalletRef.current = null;
+    void scanWallet();
+  }, [needsTurnstile, scanWallet]);
 
   useEffect(() => {
     if (!connected || !publicKey) {
       setScanResult(null);
       setSuccess(null);
       setError(null);
-      setTurnstileResetKey((key) => key + 1);
+      autoScannedWalletRef.current = null;
+      return;
     }
-  }, [connected, publicKey]);
+
+    if (scanResult && !scanResult.wallet.equals(publicKey)) {
+      setScanResult(null);
+      setSuccess(null);
+      autoScannedWalletRef.current = null;
+    }
+
+    if (!rpcConfigured || needsTurnstile || scanInFlightRef.current) return;
+
+    const walletKey = publicKey.toBase58();
+    if (scanResult?.wallet.equals(publicKey)) {
+      autoScannedWalletRef.current = walletKey;
+      return;
+    }
+
+    if (autoScannedWalletRef.current === walletKey) return;
+
+    autoScannedWalletRef.current = walletKey;
+    void scanWallet();
+  }, [connected, publicKey, rpcConfigured, needsTurnstile, scanResult, scanWallet]);
 
   const handleClaim = async () => {
     if (!publicKey || !signTransaction || !scanResult?.accounts.length) return;
@@ -145,7 +183,7 @@ export function WalletCleaner() {
         signatures,
         amountLamports: summary?.youReceiveLamports ?? 0,
       });
-      setTurnstileResetKey((key) => key + 1);
+      void scanWallet(undefined, { keepSuccess: true });
     } catch (err) {
       if (isWalletUserRejection(err)) {
         setNotice("Transaction cancelled in your wallet. No SOL was moved.");
@@ -183,7 +221,7 @@ export function WalletCleaner() {
     <div className="space-y-5">
       {rpcConfigured === false && <RpcSetupBanner />}
 
-      <div className="flex gap-1 rounded-xl border border-white/[0.08] bg-white/[0.04] p-1">
+      <div className="flex gap-1 rounded-xl border border-zinc-800 bg-zinc-900/80 p-1">
         <TabButton active={tab === "reclaim"} onClick={() => setTab("reclaim")}>
           Reclaim
         </TabButton>
@@ -197,7 +235,7 @@ export function WalletCleaner() {
         </TabButton>
       </div>
 
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-xl bg-white/[0.03] border border-white/[0.08]">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-xl bg-zinc-900/50 border border-zinc-800">
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 rounded-full bg-brand-400 flex items-center justify-center text-xs font-bold text-zinc-950">
             {publicKey?.toBase58().slice(0, 2).toUpperCase()}
@@ -205,7 +243,7 @@ export function WalletCleaner() {
           <div>
             <p className="text-xs text-surface-muted">Connected wallet</p>
             <p className="font-mono text-sm text-brand-400">
-              {publicKey ? truncateAddress(publicKey.toBase58(), 8) : "—"}
+              {publicKey ? truncateAddress(publicKey.toBase58(), 8) : "-"}
             </p>
           </div>
         </div>
@@ -231,16 +269,23 @@ export function WalletCleaner() {
         </button>
       </div>
 
-      {rpcConfigured !== false && (
-        <div className="rounded-xl border border-white/[0.08] bg-white/[0.03] px-4 py-3">
+      {rpcConfigured === true && needsTurnstile && !loading && (
+        <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 px-4 py-3">
           <p className="mb-2 text-center text-xs text-surface-muted">
-            Complete the check below to scan your wallet.
+            One-time security check to scan your wallet.
           </p>
           <TurnstileWidget
             resetKey={turnstileResetKey}
             onToken={handleTurnstileToken}
           />
         </div>
+      )}
+
+      {scanResult && !loading && !needsTurnstile && (
+        <p className={`text-center text-xs ${ui.muted}`}>
+          Scan complete. Tap <strong className="text-zinc-300">Rescan</strong>{" "}
+          to refresh.
+        </p>
       )}
 
       {error && <Alert type="error" message={error} />}
@@ -250,7 +295,10 @@ export function WalletCleaner() {
           kind="reclaim"
           signatures={success.signatures}
           amountLamports={success.amountLamports}
-          onDismiss={() => setSuccess(null)}
+          onDismiss={() => {
+            setSuccess(null);
+            requestRescan();
+          }}
         />
       )}
 
@@ -293,7 +341,7 @@ export function WalletCleaner() {
           {scanResult.accounts.length === 0 ? (
             <>
               {scanResult.burnableAccounts.length > 0 ? (
-                <div className="rounded-xl border border-white/[0.08] bg-white/[0.03] p-5 text-center text-sm">
+                <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-5 text-center text-sm">
                   <p className="font-medium">No empty accounts</p>
                   <p className={`mt-1 ${ui.muted}`}>
                     You have {scanResult.burnableAccounts.length} token account
@@ -537,7 +585,7 @@ function SkippedAccountsCard({
   if (all.length === 0) return null;
 
   return (
-    <div className="rounded-xl border border-white/[0.08] bg-white/[0.03] p-5 space-y-3 text-sm">
+    <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-5 space-y-3 text-sm">
       <p className="font-medium text-zinc-300">
         {compact ? "Not included in reclaim" : "Protected & blocked accounts"}{" "}
         {!compact && `(${formatSol(scanResult.skippedRentLamports)} SOL locked)`}
@@ -552,7 +600,7 @@ function SkippedAccountsCard({
         {all.map((account, i) => (
           <div
             key={i}
-            className="flex justify-between rounded-lg border border-white/[0.08] bg-black/25 px-3 py-2 text-xs text-zinc-400"
+            className="flex justify-between rounded-lg border border-zinc-800 bg-zinc-950/50 px-3 py-2 text-xs text-zinc-400"
           >
             <span>
               {account.label}
@@ -588,7 +636,7 @@ function TabButton({
       onClick={onClick}
       className={`flex flex-1 items-center justify-center gap-1 rounded-lg px-4 py-2.5 text-sm font-medium transition-colors ${
         active
-          ? "bg-white/[0.1] text-zinc-50 shadow-sm"
+          ? "bg-zinc-800 text-zinc-50"
           : "text-zinc-500 hover:text-zinc-300"
       }`}
     >

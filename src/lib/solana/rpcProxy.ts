@@ -1,12 +1,16 @@
-/** RPC methods the wallet UI may call through /api/rpc — block everything else. */
+/** RPC methods the wallet UI may call through /api/rpc. Block everything else. */
 export const ALLOWED_RPC_METHODS = new Set([
   "getLatestBlockhash",
   "getRecentBlockhash",
   "getBalance",
   "getAccountInfo",
   "getParsedAccountInfo",
+  "getMultipleAccounts",
   "getParsedTokenAccountsByOwner",
   "getTokenAccountsByOwner",
+  "getTokenAccountBalance",
+  "getTransaction",
+  "sendTransaction",
   "sendRawTransaction",
   "simulateTransaction",
   "getSignatureStatuses",
@@ -58,7 +62,11 @@ export function validateRpcProxyRequest(
 
     const method = (item as { method?: unknown }).method;
     if (typeof method !== "string" || !ALLOWED_RPC_METHODS.has(method)) {
-      return { ok: false, status: 403, message: "RPC method not allowed" };
+      return {
+        ok: false,
+        status: 403,
+        message: `RPC method not allowed: ${typeof method === "string" ? method : "unknown"}`,
+      };
     }
   }
 

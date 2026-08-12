@@ -2,7 +2,7 @@ import { execSync } from "node:child_process";
 
 function putSecret(name, value) {
   if (!value) {
-    console.warn(`${name} not in build env — skipping secret upload.`);
+    console.warn(`${name} not in build env. Skipping secret upload.`);
     return;
   }
 

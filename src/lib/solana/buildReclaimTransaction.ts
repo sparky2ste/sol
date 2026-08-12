@@ -19,7 +19,7 @@ const MAX_TX_BYTES = 1232;
 /** Leave room for blockhash, signatures, and platform-fee transfer */
 const TX_SIZE_BUFFER = 200;
 
-/** ~0.00008 SOL per signature — typical Solana network fee */
+/** ~0.00008 SOL per signature. Typical Solana network fee */
 export const ESTIMATED_NETWORK_FEE_LAMPORTS = 80_000;
 
 export const WALLET_RENT_RESERVE_LAMPORTS = 890_880;
@@ -37,7 +37,7 @@ export interface ReclaimSummary {
   reclaimedLamports: number;
   platformFeeLamports: number;
   networkFeeLamports: number;
-  /** Platform + network fees — all deducted from reclaimed SOL, paid by the user */
+  /** Platform + network fees. All deducted from reclaimed SOL, paid by the user */
   totalFeesLamports: number;
   youReceiveLamports: number;
   accountCount: number;
@@ -320,9 +320,65 @@ export function formatTransactionError(err: unknown): string {
     if (err.message.includes("insufficient funds for rent")) {
       return "Reclaim amount too small to cover network fees. Try closing more accounts at once.";
     }
+    if (/block height exceeded|expired/i.test(err.message)) {
+      return "Transaction may have already landed. Refresh your wallet balance or check Solscan.";
+    }
     return err.message;
   }
   return "Transaction failed";
+}
+
+const CONFIRM_POLL_MS = 800;
+const CONFIRM_TIMEOUT_MS = 45_000;
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function isConfirmedStatus(
+  status: NonNullable<
+    Awaited<ReturnType<Connection["getSignatureStatus"]>>["value"]
+  >
+): boolean {
+  if (status.err) return false;
+  const level = status.confirmationStatus;
+  return level === "confirmed" || level === "finalized" || level === "processed";
+}
+
+/** Poll signature status instead of blockhash expiry (avoids false "block height exceeded"). */
+async function waitForSignatureConfirmation(
+  connection: Connection,
+  signature: string
+): Promise<void> {
+  const deadline = Date.now() + CONFIRM_TIMEOUT_MS;
+
+  while (Date.now() < deadline) {
+    const { value } = await connection.getSignatureStatus(signature, {
+      searchTransactionHistory: true,
+    });
+
+    if (value) {
+      if (value.err) {
+        throw new Error(`Transaction failed on chain: ${JSON.stringify(value.err)}`);
+      }
+      if (isConfirmedStatus(value)) {
+        return;
+      }
+    }
+
+    await sleep(CONFIRM_POLL_MS);
+  }
+
+  const { value } = await connection.getSignatureStatus(signature, {
+    searchTransactionHistory: true,
+  });
+  if (value && !value.err && isConfirmedStatus(value)) {
+    return;
+  }
+
+  throw new Error(
+    "Confirmation timed out. Your transaction may still have succeeded. Check Solscan."
+  );
 }
 
 export async function sendReclaimTransactions(
@@ -365,19 +421,20 @@ export async function sendReclaimTransactions(
         {
           skipPreflight: false,
           preflightCommitment: "confirmed",
+          maxRetries: 3,
         }
       );
-
-      await connection.confirmTransaction(
-        { signature, blockhash, lastValidBlockHeight },
-        "confirmed"
-      );
-
       signatures.push(signature);
     } catch (err) {
       throw new Error(formatTransactionError(err));
     }
   }
+
+  await Promise.all(
+    signatures.map((signature) =>
+      waitForSignatureConfirmation(connection, signature)
+    )
+  );
 
   return signatures;
 }

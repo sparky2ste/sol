@@ -27,9 +27,8 @@ const config: Config = {
         display: ["var(--font-space)", "system-ui", "sans-serif"],
       },
       boxShadow: {
-        card: "0 1px 0 0 rgba(255,255,255,0.05) inset, 0 16px 48px -20px rgba(0,0,0,0.65)",
-        soft: "0 8px 32px -12px rgba(0,0,0,0.5)",
-        glow: "0 0 0 1px rgba(255,255,255,0.06), 0 0 60px -12px rgba(20,241,149,0.12), 0 24px 48px -24px rgba(0,0,0,0.6)",
+        card: "0 1px 0 0 rgba(255,255,255,0.03) inset",
+        soft: "0 4px 24px -8px rgba(0,0,0,0.4)",
       },
       animation: {
         "fade-in": "fadeIn 0.4s ease-out forwards",

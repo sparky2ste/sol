@@ -27,7 +27,7 @@
 .DS_Store
 *.pem
 
-# cursor / cloudflare agent setup (local only — never push)
+# cursor / cloudflare agent setup (local only, never push)
 .cursor/
 .agents/
 
@@ -37,7 +37,7 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files (secrets stay in .env.local — never commit or delete)
+# env files (secrets stay in .env.local, never commit or delete)
 .env
 .env*.local
 !.env.example

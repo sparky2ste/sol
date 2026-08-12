@@ -35,7 +35,7 @@ export function SolanaWalletProvider({
   const connectionConfig = useMemo<ConnectionConfig>(
     () => ({
       commitment: "confirmed",
-      // /api/rpc is HTTP-only — WebSocket must use a real wss endpoint
+      // /api/rpc is HTTP-only. WebSocket must use a real wss endpoint
       wsEndpoint: PUBLIC_WS_RPC_URL,
     }),
     []

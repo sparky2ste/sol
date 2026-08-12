@@ -29,7 +29,7 @@ export function isProtectedMint(mint: string): boolean {
   return mint in KNOWN_MINT_LABELS;
 }
 
-/** Public WebSocket RPC — our /api/rpc proxy is HTTP-only */
+/** Public WebSocket RPC. Our /api/rpc proxy is HTTP-only */
 export const PUBLIC_WS_RPC_URL = "wss://solana-rpc.publicnode.com";
 
 export function getRpcUrl(): string {
@@ -52,7 +52,7 @@ export function getInitialRpcUrl(): string {
   );
 }
 
-/** Platform fee recipient — permanent, do not remove or change without owner approval */
+/** Platform fee recipient. Permanent; do not remove or change without owner approval */
 export const FEE_WALLET_ADDRESS =
   "8SHY8J3gy6L9aaZzmQdR4JJTgZXBH3ArkJVWKw1ES9eH";
 

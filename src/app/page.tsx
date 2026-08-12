@@ -1,4 +1,3 @@
-import { AnimateIn } from "@/components/AnimateIn";
 import { Header } from "@/components/Header";
 import { Hero } from "@/components/Hero";
 import { FaqSection } from "@/components/FaqSection";
@@ -20,23 +19,13 @@ export default function Home() {
       <main className="mx-auto max-w-5xl px-4 sm:px-6">
         <Hero />
 
-        <AnimateIn>
-          <section id="tool" className="pb-14">
-            <div className="mb-6 text-center sm:text-left">
-              <p className={ui.sectionEyebrow}>Wallet tool</p>
-              <h2 className={`${ui.heading} text-xl sm:text-2xl`}>
-                Scan & reclaim
-              </h2>
-            </div>
-            <div className={ui.cardGlow}>
-              <WalletCleaner />
-            </div>
-          </section>
-        </AnimateIn>
+        <section id="tool" className="pb-14">
+          <div className={`${ui.card} p-6 sm:p-8`}>
+            <WalletCleaner />
+          </div>
+        </section>
 
-        <AnimateIn delay={80}>
-          <RecentClaims />
-        </AnimateIn>
+        <RecentClaims />
         <ComparisonStrip />
         <HowItWorks />
         <SecuritySection />

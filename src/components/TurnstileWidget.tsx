@@ -41,44 +41,57 @@ export function TurnstileWidget({
 }: TurnstileWidgetProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const widgetIdRef = useRef<TurnstileWidgetId | null>(null);
-
-  const renderWidget = useCallback(() => {
-    if (!containerRef.current || !window.turnstile || widgetIdRef.current) {
-      return;
-    }
-
-    widgetIdRef.current = window.turnstile.render(containerRef.current, {
-      sitekey: TURNSTILE_SITE_KEY,
-      action: TURNSTILE_ACTION_SCAN,
-      callback: onToken,
-      "expired-callback": () => {
-        widgetIdRef.current = null;
-        onExpire?.();
-      },
-      "error-callback": () => {
-        widgetIdRef.current = null;
-        onExpire?.();
-      },
-    });
-  }, [onToken, onExpire]);
+  const onTokenRef = useRef(onToken);
+  const onExpireRef = useRef(onExpire);
 
   useEffect(() => {
-    if (widgetIdRef.current && window.turnstile) {
-      window.turnstile.reset(widgetIdRef.current);
-      return;
+    onTokenRef.current = onToken;
+    onExpireRef.current = onExpire;
+  }, [onToken, onExpire]);
+
+  const removeWidget = useCallback(() => {
+    const turnstile = window.turnstile;
+    const widgetId = widgetIdRef.current;
+
+    if (widgetId && turnstile) {
+      try {
+        turnstile.remove(widgetId);
+      } catch {
+        // Widget may already be gone after unmount or expiry.
+      }
     }
 
     widgetIdRef.current = null;
+    containerRef.current?.replaceChildren();
+  }, []);
+
+  const renderWidget = useCallback(() => {
+    const turnstile = window.turnstile;
+    const container = containerRef.current;
+    if (!container || !turnstile) return;
+
+    removeWidget();
+
+    widgetIdRef.current = turnstile.render(container, {
+      sitekey: TURNSTILE_SITE_KEY,
+      action: TURNSTILE_ACTION_SCAN,
+      callback: (token) => onTokenRef.current(token),
+      "expired-callback": () => {
+        widgetIdRef.current = null;
+        onExpireRef.current?.();
+      },
+      "error-callback": () => {
+        widgetIdRef.current = null;
+        onExpireRef.current?.();
+      },
+    });
+  }, [removeWidget]);
+
+  useEffect(() => {
     renderWidget();
   }, [resetKey, renderWidget]);
 
-  useEffect(() => {
-    return () => {
-      if (widgetIdRef.current && window.turnstile) {
-        window.turnstile.remove(widgetIdRef.current);
-      }
-    };
-  }, []);
+  useEffect(() => () => removeWidget(), [removeWidget]);
 
   return (
     <>

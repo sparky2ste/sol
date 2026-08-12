@@ -104,13 +104,19 @@ export function parseScanApiResponse(data: ScanApiResponse): ScanResult {
 
 export async function scanWalletViaApi(
   walletAddress: string,
-  turnstileToken: string
+  turnstileToken?: string
 ): Promise<ScanResult> {
+  const headers: Record<string, string> = {};
+  if (turnstileToken) {
+    headers["cf-turnstile-response"] = turnstileToken;
+  }
+
   const response = await fetch(
     `/api/scan?wallet=${encodeURIComponent(walletAddress)}`,
     {
       cache: "no-store",
-      headers: { "cf-turnstile-response": turnstileToken },
+      credentials: "same-origin",
+      headers,
     }
   );
 
@@ -118,7 +124,11 @@ export async function scanWalletViaApi(
 
   if (!response.ok) {
     const err = data as ScanApiError;
-    throw new Error(err.message ?? "Failed to scan wallet");
+    const error = new Error(err.message ?? "Failed to scan wallet") as Error & {
+      code?: string;
+    };
+    error.code = err.error;
+    throw error;
   }
 
   return parseScanApiResponse(data as ScanApiResponse);

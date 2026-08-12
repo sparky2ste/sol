@@ -1,6 +1,6 @@
 # SOL Reclaim
 
-Non-custodial Solana wallet cleaner — reclaim SOL locked in empty SPL token accounts.
+Non-custodial Solana wallet cleaner. Reclaim SOL locked in empty SPL token accounts.
 
 **1% platform fee** · **optional tips** · connect wallet on-site
 
@@ -27,7 +27,7 @@ NEXT_PUBLIC_RPC_URL=https://mainnet.helius-rpc.com/?api-key=YOUR_KEY
 NEXT_PUBLIC_FEE_WALLET=YourSolanaWalletAddressHere
 ```
 
-Use a dedicated wallet for fees/tips. Get a free RPC from [Helius](https://helius.dev) or [QuickNode](https://quicknode.com) — public RPC is slow and rate-limited.
+Use a dedicated wallet for fees/tips. Get a free RPC from [Helius](https://helius.dev) or [QuickNode](https://quicknode.com). Public RPC is slow and rate-limited.
 
 4. Run dev server:
 
@@ -56,8 +56,8 @@ Set the same env vars in Vercel dashboard.
 
 ## Safety
 
-- **Fun Mode only** — closes empty accounts, never burns tokens
-- Non-custodial — wallet adapter, user signs everything
+- **Fun Mode only**: closes empty accounts, never burns tokens
+- Non-custodial: wallet adapter, user signs everything
 - Batch transactions (20 closes per tx) for large wallets
 
 ## Next steps (optional)

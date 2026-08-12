@@ -34,5 +34,5 @@ try {
   const { initOpenNextCloudflareForDev } = require("@opennextjs/cloudflare");
   initOpenNextCloudflareForDev();
 } catch {
-  // @opennextjs/cloudflare not installed yet — safe to skip for local dev.
+  // @opennextjs/cloudflare not installed yet. Safe to skip for local dev.
 }

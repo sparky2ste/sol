@@ -4,10 +4,18 @@ export function PageBackground() {
       className="pointer-events-none fixed inset-0 -z-10 overflow-hidden"
       aria-hidden
     >
-      <div className="absolute inset-0 bg-[#070708]" />
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_90%_55%_at_50%_-10%,rgba(153,69,255,0.07),transparent_55%),radial-gradient(ellipse_55%_45%_at_100%_20%,rgba(20,241,149,0.05),transparent_50%),radial-gradient(ellipse_45%_35%_at_0%_70%,rgba(20,241,149,0.04),transparent_45%)]" />
-      <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.025)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.025)_1px,transparent_1px)] bg-[length:72px_72px] [mask-image:radial-gradient(ellipse_85%_70%_at_50%_30%,black_15%,transparent_72%)]" />
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_35%,#070708_88%)]" />
+      {/* Base tint: dark navy, not flat black */}
+      <div className="absolute inset-0 bg-[#0b0c14]" />
+      <div className="absolute inset-0 bg-gradient-to-br from-[#12101f] via-[#0b0c14] to-[#081210]" />
+
+      {/* Color washes */}
+      <div className="absolute -left-[10%] top-[-20%] h-[70vh] w-[60vw] rounded-full bg-[radial-gradient(circle,rgba(153,69,255,0.22),transparent_68%)] blur-3xl" />
+      <div className="absolute left-1/2 top-[-15%] h-[55vh] w-[70vw] -translate-x-1/2 rounded-full bg-[radial-gradient(circle,rgba(20,241,149,0.16),transparent_65%)] blur-3xl" />
+      <div className="absolute -right-[10%] top-[20%] h-[50vh] w-[45vw] rounded-full bg-[radial-gradient(circle,rgba(56,189,248,0.12),transparent_68%)] blur-3xl" />
+      <div className="absolute bottom-[-15%] left-[15%] h-[45vh] w-[55vw] rounded-full bg-[radial-gradient(circle,rgba(20,241,149,0.1),transparent_70%)] blur-3xl" />
+
+      {/* Soft edge fade so content stays readable */}
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_40%,#0b0c14_100%)] opacity-80" />
     </div>
   );
 }
