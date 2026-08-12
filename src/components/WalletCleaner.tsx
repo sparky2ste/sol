@@ -6,6 +6,7 @@ import { ConnectWallet } from "@/components/ConnectWallet";
 import { Mascot } from "@/components/Mascot";
 import { TurnstileWidget } from "@/components/TurnstileWidget";
 import { BurnModule } from "@/components/BurnModule";
+import { CommunityGoals } from "@/components/CommunityGoals";
 import { SuccessCelebration } from "@/components/SuccessCelebration";
 import type { ScanResult } from "@/lib/solana/scanEmptyAccounts";
 import { scanWalletViaApi } from "@/lib/solana/scanWalletApi";
@@ -224,11 +225,11 @@ export function WalletCleaner() {
     <div className="space-y-5">
       {rpcConfigured === false && <RpcSetupBanner />}
 
-      <div className="flex gap-1 rounded-xl border border-zinc-800 bg-zinc-900/80 p-1">
-        <TabButton active={tab === "reclaim"} onClick={() => setTab("reclaim")}>
+      <div className="flex gap-1 rounded-xl border border-zinc-800/80 bg-zinc-950/60 p-1 ring-1 ring-zinc-800/50">
+        <TabButton active={tab === "reclaim"} onClick={() => setTab("reclaim")} tone="reclaim">
           Reclaim
         </TabButton>
-        <TabButton active={tab === "burn"} onClick={() => setTab("burn")}>
+        <TabButton active={tab === "burn"} onClick={() => setTab("burn")} tone="burn">
           Burn tokens
           {scanResult && scanResult.burnableAccounts.length > 0 && (
             <span className="ml-1.5 rounded-full bg-red-500/20 px-1.5 py-0.5 text-[10px] font-semibold text-red-400">
@@ -320,6 +321,9 @@ export function WalletCleaner() {
             </p>
           </div>
         )}
+
+      {tab === "reclaim" && <CommunityGoals kind="reclaim" />}
+      {tab === "burn" && <CommunityGoals kind="burn" />}
 
       {loading && !scanResult ? (
         <LoadingState />
@@ -627,20 +631,29 @@ function SkippedAccountsCard({
 function TabButton({
   active,
   onClick,
+  tone,
   children,
 }: {
   active: boolean;
   onClick: () => void;
+  tone?: "reclaim" | "burn";
   children: React.ReactNode;
 }) {
+  const activeStyles =
+    tone === "burn"
+      ? "bg-orange-500/15 text-orange-300 ring-1 ring-orange-500/25"
+      : tone === "reclaim"
+        ? "bg-[#14F195]/12 text-[#14F195] ring-1 ring-[#14F195]/25"
+        : "bg-zinc-800 text-zinc-50";
+
   return (
     <button
       type="button"
       onClick={onClick}
-      className={`flex flex-1 items-center justify-center gap-1 rounded-lg px-4 py-2.5 text-sm font-medium transition-colors ${
+      className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg px-4 py-2.5 text-sm font-medium transition-all ${
         active
-          ? "bg-zinc-800 text-zinc-50"
-          : "text-zinc-500 hover:text-zinc-300"
+          ? activeStyles
+          : "text-zinc-500 hover:bg-zinc-900/80 hover:text-zinc-300"
       }`}
     >
       {children}

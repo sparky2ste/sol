@@ -3,6 +3,7 @@ import { Inter, Space_Grotesk } from "next/font/google";
 import { ClientProviders } from "@/components/ClientProviders";
 import { PageBackground } from "@/components/PageBackground";
 import { BRAND } from "@/lib/brand";
+import { ADSENSE_CLIENT } from "@/lib/adsense/config";
 import "./globals.css";
 import "@solana/wallet-adapter-react-ui/styles.css";
 
@@ -29,6 +30,9 @@ export const metadata: Metadata = {
   },
   robots: { index: true, follow: true },
   icons: { icon: "/logo.svg" },
+  other: {
+    "google-adsense-account": ADSENSE_CLIENT,
+  },
 };
 
 export const viewport = {

@@ -34,6 +34,8 @@ const config: Config = {
         "fade-in": "fadeIn 0.4s ease-out forwards",
         "fade-in-up": "fadeInUp 0.5s ease-out forwards",
         float: "float 5s ease-in-out infinite",
+        shimmer: "shimmer 2.5s ease-in-out infinite",
+        "pulse-glow": "pulseGlow 2s ease-in-out infinite",
       },
       keyframes: {
         fadeIn: {
@@ -47,6 +49,14 @@ const config: Config = {
         float: {
           "0%, 100%": { transform: "translateY(0)" },
           "50%": { transform: "translateY(-10px)" },
+        },
+        shimmer: {
+          "0%": { transform: "translateX(-100%)" },
+          "100%": { transform: "translateX(100%)" },
+        },
+        pulseGlow: {
+          "0%, 100%": { opacity: "0.4" },
+          "50%": { opacity: "0.8" },
         },
       },
     },

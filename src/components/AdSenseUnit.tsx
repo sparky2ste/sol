@@ -1,116 +1,123 @@
 "use client";
 
-import Script from "next/script";
-import { useCallback, useEffect, useRef, useState } from "react";
-import {
-  ADSENSE_CLIENT,
-  ADSENSE_SCRIPT,
-  ADSENSE_SLOT,
-} from "@/lib/adsense/config";
-
-declare global {
-  interface Window {
-    adsbygoogle?: Record<string, unknown>[];
-  }
-}
-
-const pushedSlots = new Set<string>();
+import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { getAdSenseConfig } from "@/lib/adsense/config";
+import { loadAdSenseScript, pushAdUnit } from "@/lib/adsense/load";
 
 interface AdSenseUnitProps {
   className?: string;
-  slot?: string;
 }
 
-function pushAdSlot(slot: string) {
-  if (pushedSlots.has(slot)) return;
-  try {
-    (window.adsbygoogle = window.adsbygoogle || []).push({});
-    pushedSlots.add(slot);
-  } catch {
-    // Blocked by ad blocker or script not ready.
-  }
+function insLooksFilled(ins: HTMLElement): boolean {
+  const iframe = ins.querySelector("iframe");
+  if (!iframe) return false;
+  const { height, width } = iframe.getBoundingClientRect();
+  return height > 40 && width > 40;
 }
 
-export function AdSenseUnit({
-  className = "",
-  slot = ADSENSE_SLOT,
-}: AdSenseUnitProps) {
+export function AdSenseUnit({ className = "" }: AdSenseUnitProps) {
   const insRef = useRef<HTMLModElement>(null);
-  const [scriptReady, setScriptReady] = useState(false);
-  const [showFrame, setShowFrame] = useState(true);
-
-  const tryPush = useCallback(() => {
-    if (!slot || !insRef.current) return;
-    window.requestAnimationFrame(() => {
-      pushAdSlot(slot);
-    });
-  }, [slot]);
+  const unitId = useId();
+  const [hostname, setHostname] = useState("");
 
   useEffect(() => {
-    if (!scriptReady) return;
-    tryPush();
-  }, [scriptReady, tryPush]);
+    setHostname(window.location.hostname);
+  }, []);
+
+  const config = useMemo(() => {
+    if (!hostname) return null;
+    return getAdSenseConfig(hostname);
+  }, [hostname]);
 
   useEffect(() => {
-    const ins = insRef.current;
-    if (!ins) return;
+    if (!config) return;
 
-    const hideIfEmpty = () => {
-      const status = ins.getAttribute("data-ad-status");
-      if (status === "unfilled") {
-        setShowFrame(false);
+    let cancelled = false;
+    let observer: MutationObserver | undefined;
+
+    const syncStatus = () => {
+      const ins = insRef.current;
+      if (!ins || cancelled) return;
+      if (insLooksFilled(ins)) {
+        ins.dataset.adLoaded = "true";
       }
     };
 
-    hideIfEmpty();
+    const mountAd = async () => {
+      try {
+        await loadAdSenseScript(config.scriptUrl);
+        if (cancelled || !insRef.current) return;
 
-    const observer = new MutationObserver(hideIfEmpty);
-    observer.observe(ins, {
-      attributes: true,
-      attributeFilter: ["data-ad-status"],
-    });
+        await new Promise<void>((resolve) => {
+          window.requestAnimationFrame(() => {
+            window.requestAnimationFrame(() => resolve());
+          });
+        });
 
-    const timeout = window.setTimeout(hideIfEmpty, 4000);
+        for (let attempt = 0; attempt < 4; attempt += 1) {
+          if (cancelled || !insRef.current) return;
+          if (insLooksFilled(insRef.current)) return;
+
+          pushAdUnit();
+          await new Promise<void>((resolve) => {
+            window.setTimeout(resolve, 1000);
+          });
+        }
+      } catch {
+        /* ignore */
+      }
+    };
+
+    const bind = () => {
+      const ins = insRef.current;
+      if (!ins) return false;
+      observer = new MutationObserver(syncStatus);
+      observer.observe(ins, {
+        attributes: true,
+        attributeFilter: ["data-ad-status"],
+        childList: true,
+        subtree: true,
+      });
+      void mountAd();
+      return true;
+    };
+
+    if (!bind()) {
+      const wait = () => {
+        if (cancelled) return;
+        if (bind()) return;
+        window.requestAnimationFrame(wait);
+      };
+      wait();
+    }
 
     return () => {
-      observer.disconnect();
-      window.clearTimeout(timeout);
+      cancelled = true;
+      observer?.disconnect();
     };
-  }, [slot]);
-
-  if (!slot) return null;
+  }, [config]);
 
   return (
-    <>
-      <Script
-        id={`adsense-${slot}`}
-        async
-        src={ADSENSE_SCRIPT}
-        crossOrigin="anonymous"
-        strategy="afterInteractive"
-        onLoad={() => setScriptReady(true)}
-      />
-      {showFrame && (
-        <aside
-          className={`overflow-hidden ${className}`}
-          aria-label="Advertisement"
-        >
-          <div className="mx-auto max-w-3xl rounded-xl border border-zinc-800/50 bg-zinc-900/25 px-2 py-3">
-            <p className="mb-2 text-center text-[10px] uppercase tracking-wider text-zinc-600">
-              Sponsored
-            </p>
+    <aside className={`overflow-hidden ${className}`} aria-label="Advertisement">
+      <div className="mx-auto max-w-3xl rounded-xl border border-zinc-800/50 bg-zinc-900/25 px-2 py-3">
+        <p className="mb-2 text-center text-[10px] uppercase tracking-wider text-zinc-600">
+          Sponsored
+        </p>
+        {config ? (
+          <div className="flex justify-center overflow-hidden rounded-md bg-zinc-950/40">
             <ins
               ref={insRef}
-              className="adsbygoogle block min-h-[100px] w-full"
-              style={{ display: "block" }}
-              data-ad-client={ADSENSE_CLIENT}
-              data-ad-slot={slot}
-              data-ad-format="auto"
-              data-full-width-responsive="true"
+              id={unitId}
+              className="adsbygoogle"
+              style={{ display: "inline-block", width: 728, maxWidth: "100%", height: 90 }}
+              data-ad-client={config.client}
+              data-ad-slot={config.slot}
             />
           </div>
-        </aside>
-      )}
-    </>
+        ) : (
+          <div className="mx-auto h-[90px] max-w-full animate-pulse rounded bg-zinc-800/40" />
+        )}
+      </div>
+    </aside>
   );
 }
