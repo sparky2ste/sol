@@ -27,11 +27,12 @@ export function Mascot({
     >
       <div className="absolute inset-[12%] rounded-full bg-[radial-gradient(circle,rgba(20,241,149,0.22),transparent_70%)] blur-xl" />
       <Image
-        src="/mascot.jpg"
+        src="/mascot.png"
         alt=""
         width={s.dim}
         height={s.dim}
         priority={priority}
+        unoptimized
         className="relative z-10 h-full w-full animate-float object-contain drop-shadow-[0_12px_40px_rgba(20,241,149,0.18)]"
       />
     </div>
