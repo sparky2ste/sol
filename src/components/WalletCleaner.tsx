@@ -183,7 +183,7 @@ export function WalletCleaner() {
     <div className="space-y-5">
       {rpcConfigured === false && <RpcSetupBanner />}
 
-      <div className="flex gap-1 rounded-xl border border-zinc-800 bg-zinc-900/80 p-1">
+      <div className="flex gap-1 rounded-xl border border-white/[0.08] bg-white/[0.04] p-1">
         <TabButton active={tab === "reclaim"} onClick={() => setTab("reclaim")}>
           Reclaim
         </TabButton>
@@ -197,7 +197,7 @@ export function WalletCleaner() {
         </TabButton>
       </div>
 
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-xl bg-zinc-900 border border-zinc-800">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-xl bg-white/[0.03] border border-white/[0.08]">
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 rounded-full bg-brand-400 flex items-center justify-center text-xs font-bold text-zinc-950">
             {publicKey?.toBase58().slice(0, 2).toUpperCase()}
@@ -232,7 +232,7 @@ export function WalletCleaner() {
       </div>
 
       {rpcConfigured !== false && (
-        <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 px-4 py-3">
+        <div className="rounded-xl border border-white/[0.08] bg-white/[0.03] px-4 py-3">
           <p className="mb-2 text-center text-xs text-surface-muted">
             Complete the check below to scan your wallet.
           </p>
@@ -293,7 +293,7 @@ export function WalletCleaner() {
           {scanResult.accounts.length === 0 ? (
             <>
               {scanResult.burnableAccounts.length > 0 ? (
-                <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-5 text-center text-sm">
+                <div className="rounded-xl border border-white/[0.08] bg-white/[0.03] p-5 text-center text-sm">
                   <p className="font-medium">No empty accounts</p>
                   <p className={`mt-1 ${ui.muted}`}>
                     You have {scanResult.burnableAccounts.length} token account
@@ -537,7 +537,7 @@ function SkippedAccountsCard({
   if (all.length === 0) return null;
 
   return (
-    <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-5 space-y-3 text-sm">
+    <div className="rounded-xl border border-white/[0.08] bg-white/[0.03] p-5 space-y-3 text-sm">
       <p className="font-medium text-zinc-300">
         {compact ? "Not included in reclaim" : "Protected & blocked accounts"}{" "}
         {!compact && `(${formatSol(scanResult.skippedRentLamports)} SOL locked)`}
@@ -552,7 +552,7 @@ function SkippedAccountsCard({
         {all.map((account, i) => (
           <div
             key={i}
-            className="flex justify-between rounded-lg border border-zinc-800 bg-zinc-950/50 px-3 py-2 text-xs text-zinc-400"
+            className="flex justify-between rounded-lg border border-white/[0.08] bg-black/25 px-3 py-2 text-xs text-zinc-400"
           >
             <span>
               {account.label}
@@ -588,7 +588,7 @@ function TabButton({
       onClick={onClick}
       className={`flex flex-1 items-center justify-center gap-1 rounded-lg px-4 py-2.5 text-sm font-medium transition-colors ${
         active
-          ? "bg-zinc-800 text-zinc-50"
+          ? "bg-white/[0.1] text-zinc-50 shadow-sm"
           : "text-zinc-500 hover:text-zinc-300"
       }`}
     >

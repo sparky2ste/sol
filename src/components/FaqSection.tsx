@@ -36,10 +36,10 @@ export function FaqSection() {
   const [open, setOpen] = useState<number | null>(0);
 
   return (
-    <section id="faq" className="border-t border-zinc-800 py-16 sm:py-20">
+    <section id="faq" className={ui.section}>
       <AnimateIn>
-        <div className="mb-8">
-          <p className={`${ui.label} mb-2`}>FAQ</p>
+        <div className="mb-8 max-w-lg">
+          <p className={ui.sectionEyebrow}>FAQ</p>
           <h2 className={`${ui.heading} text-2xl sm:text-3xl`}>
             Common questions
           </h2>

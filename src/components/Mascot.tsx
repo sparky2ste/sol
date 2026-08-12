@@ -25,7 +25,7 @@ export function Mascot({
       className={`relative mx-auto ${s.box} ${className}`}
       aria-hidden
     >
-      <div className="absolute inset-[12%] rounded-full bg-[radial-gradient(circle,rgba(20,241,149,0.22),transparent_70%)] blur-xl" />
+      <div className="absolute inset-[8%] rounded-full bg-[radial-gradient(circle,rgba(20,241,149,0.1),transparent_70%)] blur-2xl" />
       <Image
         src="/mascot.png"
         alt=""

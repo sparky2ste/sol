@@ -21,8 +21,14 @@ export default function Home() {
         <Hero />
 
         <AnimateIn>
-          <section id="tool" className="pb-12">
-            <div className={`${ui.card} p-6 sm:p-8`}>
+          <section id="tool" className="pb-14">
+            <div className="mb-6 text-center sm:text-left">
+              <p className={ui.sectionEyebrow}>Wallet tool</p>
+              <h2 className={`${ui.heading} text-xl sm:text-2xl`}>
+                Scan & reclaim
+              </h2>
+            </div>
+            <div className={ui.cardGlow}>
               <WalletCleaner />
             </div>
           </section>

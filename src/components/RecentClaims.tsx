@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { LogoIcon } from "@/components/LogoIcon";
 import {
   formatRelativeTime,
   lamportsToSol,
@@ -45,19 +44,16 @@ export function RecentClaims() {
   }, []);
 
   return (
-    <section id="recent-claims" className="pb-12">
+    <section id="recent-claims" className="pb-14">
+      <div className="mb-6">
+        <p className={ui.sectionEyebrow}>Live activity</p>
+        <h2 className={`${ui.heading} text-xl sm:text-2xl`}>Recent claims</h2>
+      </div>
       <div className={`${ui.card} overflow-hidden`}>
-        <div className="flex items-center gap-3 border-b border-zinc-800 px-5 py-4">
-          <LogoIcon className="h-8 w-8 shrink-0" />
-          <h2 className="text-[15px] font-medium">
-            Recent Claims by Our Users
-          </h2>
-        </div>
-
         <div className="overflow-x-auto">
           <table className="w-full min-w-[480px] text-sm">
             <thead>
-              <tr className={`border-b border-zinc-800 text-left text-xs ${ui.muted}`}>
+              <tr className={`border-b border-white/[0.06] text-left text-xs ${ui.muted}`}>
                 <th className="px-5 py-3 font-normal">Wallet</th>
                 <th className="px-4 py-3 font-normal">Amount</th>
                 <th className="px-4 py-3 font-normal">Date</th>
@@ -67,7 +63,7 @@ export function RecentClaims() {
             <tbody>
               {loading ? (
                 Array.from({ length: 4 }).map((_, i) => (
-                  <tr key={i} className="border-b border-zinc-800/50">
+                  <tr key={i} className="border-b border-white/[0.04]">
                     {Array.from({ length: 4 }).map((__, j) => (
                       <td key={j} className="px-5 py-3.5">
                         <div className="h-3.5 animate-pulse rounded bg-zinc-800" />
@@ -88,7 +84,7 @@ export function RecentClaims() {
                 claims.map((claim) => (
                   <tr
                     key={claim.signature}
-                    className="border-b border-zinc-800/50 transition-colors last:border-0 hover:bg-zinc-900/80"
+                    className="border-b border-white/[0.04] transition-colors last:border-0 hover:bg-white/[0.03]"
                   >
                     <td className="px-5 py-3.5">
                       <a
