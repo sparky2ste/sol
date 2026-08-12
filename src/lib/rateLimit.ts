@@ -30,7 +30,6 @@ export function rateLimit(
     };
   }
 
-  // Prevent unbounded memory on long-running dev servers.
   if (buckets.size > 10_000) {
     for (const [k, v] of buckets) {
       if (now >= v.resetAt) buckets.delete(k);
@@ -42,6 +41,7 @@ export function rateLimit(
 
 export function getClientIp(request: NextRequest): string {
   return (
+    request.headers.get("cf-connecting-ip") ??
     request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
     request.headers.get("x-real-ip") ??
     "unknown"

@@ -1,35 +1,42 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerRpcUrl } from "@/lib/solana/rpc";
 import { getClientIp, rateLimit, rateLimitResponse } from "@/lib/rateLimit";
+import { getServerRpcUrl } from "@/lib/solana/rpc";
+import { validateRpcProxyRequest } from "@/lib/solana/rpcProxy";
 
 export const dynamic = "force-dynamic";
 
-const FALLBACK_RPCS = [  "https://solana.drpc.org",
+const FALLBACK_RPCS = [
+  "https://solana.drpc.org",
   "https://solana-rpc.publicnode.com",
 ];
 
+function rpcError(status: number, message: string) {
+  return NextResponse.json(
+    {
+      jsonrpc: "2.0",
+      error: { code: -32603, message },
+      id: null,
+    },
+    { status }
+  );
+}
+
 export async function POST(request: NextRequest) {
   const ip = getClientIp(request);
-  const limited = rateLimit(`rpc:${ip}`, 120, 60_000);
+  const limited = rateLimit(`rpc:${ip}`, 60, 60_000);
   if (!limited.ok) {
     return rateLimitResponse(limited.retryAfterSec);
   }
 
-  const body = await request.text();  const urls = [getServerRpcUrl(), ...FALLBACK_RPCS].filter(Boolean);
+  const rawBody = await request.text();
+  const validated = validateRpcProxyRequest(request.headers.get("host"), rawBody);
+  if (!validated.ok) {
+    return rpcError(validated.status, validated.message);
+  }
 
+  const urls = [getServerRpcUrl(), ...FALLBACK_RPCS].filter(Boolean);
   if (urls.length === 0) {
-    return NextResponse.json(
-      {
-        jsonrpc: "2.0",
-        error: {
-          code: -32603,
-          message:
-            "No RPC configured. Add HELIUS_API_KEY to .env.local (free at helius.dev).",
-        },
-        id: null,
-      },
-      { status: 503 }
-    );
+    return rpcError(503, "RPC not configured");
   }
 
   let lastResponse: Response | null = null;
@@ -39,12 +46,11 @@ export async function POST(request: NextRequest) {
       const upstream = await fetch(rpcUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body,
+        body: validated.body,
       });
 
       const responseBody = await upstream.text();
 
-      // Skip blocked upstream responses and try next RPC
       if (
         upstream.status === 403 ||
         responseBody.includes("Access forbidden") ||
@@ -68,10 +74,7 @@ export async function POST(request: NextRequest) {
       ? await lastResponse.text()
       : JSON.stringify({
           jsonrpc: "2.0",
-          error: {
-            code: 403,
-            message: "Access forbidden",
-          },
+          error: { code: 403, message: "Access forbidden" },
           id: null,
         }),
     {

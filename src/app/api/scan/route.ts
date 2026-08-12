@@ -105,8 +105,8 @@ export async function GET(request: NextRequest) {
       {
         error: blocked ? "RPC_BLOCKED" : "SCAN_FAILED",
         message: blocked
-          ? "RPC blocked this request. Use a Helius API key in .env.local (helius.dev) and restart the dev server."
-          : message,
+          ? "Wallet scan is temporarily unavailable. Please try again later."
+          : "Failed to scan wallet. Please try again.",
       },
       { status: blocked ? 503 : 500 }
     );
