@@ -23,20 +23,16 @@ export default function Home() {
 
         <AnimateIn>
           <section id="tool" className="pb-16">
-            <div className="mb-6 text-center sm:text-left">
+            <div className="mb-5 text-center sm:text-left">
               <p className={`${ui.sectionEyebrow} uppercase tracking-widest`}>
                 Wallet tool
               </p>
               <h2 className={`${ui.heading} text-2xl sm:text-3xl`}>
                 Scan · Reclaim · Burn
               </h2>
-              <p className={`mt-2 max-w-xl text-sm ${ui.muted}`}>
-                Connect any supported wallet, scan for empty accounts or junk
-                tokens, and recover SOL in seconds.
-              </p>
             </div>
 
-            <div className="glass-card overflow-hidden p-6 sm:p-8">
+            <div className="glass-card overflow-hidden p-5 sm:p-6">
               <WalletCleaner />
             </div>
           </section>

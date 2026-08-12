@@ -1,5 +1,6 @@
 import { Connection, PublicKey } from "@solana/web3.js";
-import { getMint } from "@solana/spl-token";
+import { getMint, TOKEN_2022_PROGRAM_ID } from "@solana/spl-token";
+import { TOKEN_PROGRAM_ID } from "@/lib/solana/constants";
 import { withRpcRetry } from "./rpcRetry";
 import type { OracleBundlerSignal, OracleHolderWallet } from "./types";
 
@@ -29,6 +30,27 @@ function clusterByExactAmount(
   return clusters;
 }
 
+async function getMintProgramId(
+  connection: Connection,
+  mint: PublicKey
+): Promise<PublicKey> {
+  const info = await withRpcRetry(() =>
+    connection.getAccountInfo(mint, "confirmed")
+  );
+  if (!info) {
+    throw new Error("Address not found on Solana mainnet.");
+  }
+  if (info.owner.equals(TOKEN_2022_PROGRAM_ID)) {
+    return TOKEN_2022_PROGRAM_ID;
+  }
+  if (info.owner.equals(TOKEN_PROGRAM_ID)) {
+    return TOKEN_PROGRAM_ID;
+  }
+  throw new Error(
+    "That address is not a token mint. Paste the token CA (mint address), not a wallet or pool."
+  );
+}
+
 export async function fetchOnChainHolderAnalysis(
   connection: Connection,
   mintAddress: string,
@@ -48,8 +70,9 @@ export async function fetchOnChainHolderAnalysis(
   bundlerSignals: OracleBundlerSignal[];
 }> {
   const mint = new PublicKey(mintAddress);
+  const programId = await getMintProgramId(connection, mint);
   const [mintInfo, largest] = await Promise.all([
-    withRpcRetry(() => getMint(connection, mint, "confirmed")),
+    withRpcRetry(() => getMint(connection, mint, "confirmed", programId)),
     withRpcRetry(() =>
       connection.getTokenLargestAccounts(mint, "confirmed")
     ),
@@ -63,13 +86,14 @@ export async function fetchOnChainHolderAnalysis(
 
   const tokenAccountPubkeys = largest.value
     .filter((e) => e.address && e.uiAmount != null)
-    .map((e) => e.address!);
+    .map((e) => e.address!)
+    .slice(0, 12);
 
-  const parsedAccounts = await Promise.all(
-    tokenAccountPubkeys.map((pk) =>
-      connection.getParsedAccountInfo(pk, "confirmed")
-    )
-  );
+  const accountInfos = tokenAccountPubkeys.length
+    ? await withRpcRetry(() =>
+        connection.getMultipleAccountsInfo(tokenAccountPubkeys, "confirmed")
+      )
+    : [];
 
   const rawHolders: {
     address: string;
@@ -78,13 +102,18 @@ export async function fetchOnChainHolderAnalysis(
     owner: string;
   }[] = [];
 
-  largest.value.forEach((entry, i) => {
+  largest.value.slice(0, 12).forEach((entry, i) => {
     if (!entry.address || entry.uiAmount == null) return;
 
-    const owner =
-      (parsedAccounts[i]?.value?.data as {
-        parsed?: { info?: { owner?: string } };
-      })?.parsed?.info?.owner ?? entry.address.toBase58();
+    let owner = entry.address.toBase58();
+    const data = accountInfos[i]?.data;
+    if (data && data.length >= 64) {
+      try {
+        owner = new PublicKey(data.subarray(32, 64)).toBase58();
+      } catch {
+        // Keep token account address as fallback
+      }
+    }
 
     rawHolders.push({
       address: owner,
@@ -150,7 +179,7 @@ export async function fetchOnChainHolderAnalysis(
 
   const bundlerCandidates = walletHolders
     .filter((w) => w.percent >= 0.8)
-    .slice(0, 4);
+    .slice(0, 2);
 
   if (bundlerCandidates.length > 0) {
     const balances = await connection.getMultipleAccountsInfo(

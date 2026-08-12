@@ -7,6 +7,7 @@ import {
 import { fetchDexScreenerMarket } from "./fetchMarket";
 import { fetchOnChainHolderAnalysis } from "./fetchOnChain";
 import { buildSocialMentions, generateOracleVerdict } from "./generateVerdict";
+import { parseMintInput } from "./parseMint";
 import { withRpcRetry } from "./rpcRetry";
 import type { OracleReport } from "./types";
 
@@ -27,16 +28,32 @@ async function assertTokenMint(connection: Connection, mint: string): Promise<vo
 
   if (!isMint) {
     throw new Error(
-      "That address is not a token mint. Paste the token CA (mint address), not a wallet or pool."
+      "That address is a pool or wallet, not a token mint. Paste the token CA from DexScreener."
     );
   }
 }
 
-export async function analyzeToken(mint: string): Promise<OracleReport> {
+export async function analyzeToken(rawInput: string): Promise<OracleReport> {
   const connection = getServerConnection();
+  const parsed = parseMintInput(rawInput);
+
+  if (!parsed || !validateMintAddress(parsed)) {
+    throw new Error(
+      "Invalid address. Paste the token mint (CA) or a DexScreener / Solscan link."
+    );
+  }
+
+  const dex = await fetchDexScreenerMarket(parsed);
+  const mint = dex.resolvedMint;
+
+  if (!validateMintAddress(mint)) {
+    throw new Error(
+      "Could not resolve a token mint from that address. Copy the CA from DexScreener."
+    );
+  }
+
   await assertTokenMint(connection, mint);
 
-  const dex = await fetchDexScreenerMarket(mint);
   const onChain = await fetchOnChainHolderAnalysis(
     connection,
     mint,
@@ -97,6 +114,7 @@ export async function analyzeToken(mint: string): Promise<OracleReport> {
   };
 }
 
-export function validateMintAddress(mint: string): boolean {
-  return isValidSolanaAddress(mint);
+export function validateMintAddress(raw: string): boolean {
+  const mint = parseMintInput(raw);
+  return mint.length > 0 && isValidSolanaAddress(mint);
 }

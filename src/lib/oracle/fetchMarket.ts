@@ -13,6 +13,17 @@ interface DexPair {
   pairCreatedAt?: number;
   txns?: { h24?: { buys?: number; sells?: number } };
   boosts?: { active?: number };
+  baseToken?: { address?: string; symbol?: string; name?: string };
+  info?: {
+    imageUrl?: string;
+    websites?: { url: string }[];
+    socials?: {
+      platform?: string;
+      type?: string;
+      handle?: string;
+      url?: string;
+    }[];
+  };
 }
 
 function pickBestSolanaPair(pairs: DexPair[]): DexPair | null {
@@ -26,78 +37,50 @@ function pickBestSolanaPair(pairs: DexPair[]): DexPair | null {
   })[0];
 }
 
-export async function fetchDexScreenerMarket(
-  mint: string
-): Promise<{
-  market: OracleMarketData | null;
-  symbol: string;
-  name: string;
-  imageUrl?: string;
-  description?: string;
-  socials: { platform: string; handle: string; url: string }[];
-  websites: string[];
-}> {
-  const res = await fetch(
-    `https://api.dexscreener.com/latest/dex/tokens/${mint}`,
-    { next: { revalidate: 0 } }
+function mapSocials(pair: DexPair) {
+  return (
+    pair.info?.socials?.map((s) => {
+      const platform = s.platform ?? s.type ?? "link";
+      const url = s.url;
+      if (url) {
+        let handle = s.handle ?? "";
+        if (!handle) {
+          try {
+            handle = new URL(url).hostname.replace("www.", "");
+          } catch {
+            handle = url.slice(0, 32);
+          }
+        }
+        return { platform, handle, url };
+      }
+      const handle = s.handle ?? "";
+      return {
+        platform,
+        handle,
+        url:
+          platform === "twitter" || platform === "x"
+            ? `https://x.com/${handle.replace("@", "")}`
+            : platform === "telegram"
+              ? `https://t.me/${handle.replace("@", "")}`
+              : handle.startsWith("http")
+                ? handle
+                : `https://${platform}.com/${handle.replace("@", "")}`,
+      };
+    }) ?? []
   );
+}
 
-  if (!res.ok) {
-    return {
-      market: null,
-      symbol: "???",
-      name: "Unknown",
-      socials: [],
-      websites: [],
-    };
-  }
-
-  const data = (await res.json()) as { pairs?: DexPair[] };
-  const pair = pickBestSolanaPair(data.pairs ?? []);
-
-  if (!pair) {
-    return {
-      market: null,
-      symbol: "???",
-      name: "Unknown",
-      socials: [],
-      websites: [],
-    };
-  }
-
-  const info = (pair as DexPair & {
-    baseToken?: { symbol?: string; name?: string };
-    info?: {
-      imageUrl?: string;
-      websites?: { url: string }[];
-      socials?: { platform: string; handle: string }[];
-    };
-  }).info;
-
-  const base = (pair as DexPair & {
-    baseToken?: { symbol?: string; name?: string };
-  }).baseToken;
-
-  const pairSocials =
-    info?.socials?.map((s) => ({
-      platform: s.platform,
-      handle: s.handle,
-      url:
-        s.platform === "twitter"
-          ? `https://x.com/${s.handle.replace("@", "")}`
-          : s.platform === "telegram"
-            ? `https://t.me/${s.handle.replace("@", "")}`
-            : `https://${s.platform}.com/${s.handle}`,
-    })) ?? [];
-
+function pairToResult(pair: DexPair, fallbackAddress: string) {
+  const base = pair.baseToken;
+  const resolvedMint = base?.address ?? fallbackAddress;
+  const info = pair.info;
+  const pairSocials = mapSocials(pair);
   const pairWebsites = info?.websites?.map((w) => w.url) ?? [];
-
   const createdAt = pair.pairCreatedAt ?? null;
   const pairAgeHours =
     createdAt != null
       ? Math.max(0, (Date.now() - createdAt) / (1000 * 60 * 60))
       : null;
-
   const txns24h =
     (pair.txns?.h24?.buys ?? 0) + (pair.txns?.h24?.sells ?? 0);
 
@@ -118,12 +101,74 @@ export async function fetchDexScreenerMarket(
   };
 
   return {
+    resolvedMint,
     market,
     symbol: base?.symbol ?? "???",
     name: base?.name ?? "Unknown Token",
     imageUrl: info?.imageUrl,
-    description: undefined,
+    description: undefined as string | undefined,
     socials: pairSocials,
     websites: pairWebsites,
+  };
+}
+
+async function fetchTokenPairs(address: string): Promise<DexPair | null> {
+  try {
+    const res = await fetch(
+      `https://api.dexscreener.com/latest/dex/tokens/${address}`
+    );
+    if (!res.ok) return null;
+    const data = (await res.json()) as { pairs?: DexPair[] };
+    return pickBestSolanaPair(data.pairs ?? []);
+  } catch {
+    return null;
+  }
+}
+
+async function fetchPairByAddress(address: string): Promise<DexPair | null> {
+  try {
+    const res = await fetch(
+      `https://api.dexscreener.com/latest/dex/pairs/solana/${address}`
+    );
+    if (!res.ok) return null;
+    const data = (await res.json()) as {
+      pair?: DexPair;
+      pairs?: DexPair[];
+    };
+    return data.pair ?? data.pairs?.[0] ?? null;
+  } catch {
+    return null;
+  }
+}
+
+export async function fetchDexScreenerMarket(address: string): Promise<{
+  resolvedMint: string;
+  market: OracleMarketData | null;
+  symbol: string;
+  name: string;
+  imageUrl?: string;
+  description?: string;
+  socials: { platform: string; handle: string; url: string }[];
+  websites: string[];
+}> {
+  const candidates = [address, address.toLowerCase()].filter(
+    (v, i, a) => a.indexOf(v) === i
+  );
+
+  for (const candidate of candidates) {
+    const fromToken = await fetchTokenPairs(candidate);
+    if (fromToken) return pairToResult(fromToken, candidate);
+
+    const fromPair = await fetchPairByAddress(candidate);
+    if (fromPair) return pairToResult(fromPair, candidate);
+  }
+
+  return {
+    resolvedMint: address,
+    market: null,
+    symbol: "???",
+    name: "Unknown",
+    socials: [],
+    websites: [],
   };
 }

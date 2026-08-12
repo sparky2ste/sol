@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import { ConnectWallet } from "@/components/ConnectWallet";
-import { Mascot } from "@/components/Mascot";
 import { TurnstileWidget } from "@/components/TurnstileWidget";
 import { BurnModule } from "@/components/BurnModule";
 import { SuccessCelebration } from "@/components/SuccessCelebration";
@@ -220,75 +219,49 @@ export function WalletCleaner() {
 
   if (!connected) {
     return (
-      <div className="py-10 text-center sm:py-12">
-        <Mascot size="md" className="mb-5" />
-        <h3 className="mb-2 font-display text-2xl font-semibold">
-          Connect your wallet
-        </h3>
-        <p className={`mx-auto mb-8 max-w-md text-sm leading-relaxed ${ui.muted}`}>
-          Pick Phantom, Solflare, Coinbase Wallet, or Trust — then scan for
-          empty accounts and junk tokens.
-        </p>
+      <div className="py-4 sm:py-6">
         <ConnectWallet layout="grid" />
       </div>
     );
   }
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       {rpcConfigured === false && <RpcSetupBanner />}
 
-      <div className="flex gap-1 rounded-xl border border-zinc-800/80 bg-zinc-950/60 p-1 ring-1 ring-zinc-800/50">
-        <TabButton active={tab === "reclaim"} onClick={() => setTab("reclaim")} tone="reclaim">
-          Reclaim
-        </TabButton>
-        <TabButton active={tab === "burn"} onClick={() => setTab("burn")} tone="burn">
-          Burn tokens
-          {scanResult && scanResult.burnableAccounts.length > 0 && (
-            <span className="ml-1.5 rounded-full bg-red-500/20 px-1.5 py-0.5 text-[10px] font-semibold text-red-400">
-              {scanResult.burnableAccounts.length}
-            </span>
-          )}
-        </TabButton>
-      </div>
-
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-xl bg-zinc-900/50 border border-zinc-800">
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-full bg-brand-400 flex items-center justify-center text-xs font-bold text-zinc-950">
-            {publicKey?.toBase58().slice(0, 2).toUpperCase()}
-          </div>
-          <div>
-            <p className="text-xs text-surface-muted">Connected wallet</p>
-            <p className="font-mono text-sm text-brand-400">
-              {publicKey ? truncateAddress(publicKey.toBase58(), 8) : "-"}
-            </p>
-          </div>
+      <div className="space-y-3">
+        <div className="flex gap-6 border-b border-zinc-800/60">
+          <TabButton active={tab === "reclaim"} onClick={() => setTab("reclaim")} tone="reclaim">
+            Reclaim
+          </TabButton>
+          <TabButton active={tab === "burn"} onClick={() => setTab("burn")} tone="burn">
+            Burn
+            {scanResult && scanResult.burnableAccounts.length > 0 && (
+              <span className="ml-1 rounded-full bg-red-500/15 px-1.5 py-0.5 text-[10px] font-semibold text-red-400">
+                {scanResult.burnableAccounts.length}
+              </span>
+            )}
+          </TabButton>
         </div>
-        <button
-          type="button"
-          onClick={requestRescan}
-          disabled={loading || !rpcConfigured}
-          className={`${ui.btnSecondary} disabled:opacity-40`}
-        >
-          {loading ? (
-            <>
-              <Spinner />
-              Scanning…
-            </>
-          ) : (
-            <>
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-              </svg>
-              Rescan
-            </>
-          )}
-        </button>
+
+        <div className="flex items-center justify-between gap-3 text-sm">
+          <span className="truncate font-mono text-zinc-400">
+            {publicKey ? truncateAddress(publicKey.toBase58(), 6) : "—"}
+          </span>
+          <button
+            type="button"
+            onClick={requestRescan}
+            disabled={loading || !rpcConfigured}
+            className="shrink-0 text-xs text-zinc-500 transition-colors hover:text-[#14F195] disabled:opacity-40"
+          >
+            {loading ? "Scanning…" : "Rescan"}
+          </button>
+        </div>
       </div>
 
       {rpcConfigured === true && needsTurnstile && !isWorkersDev && !loading && (
-        <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 px-4 py-3">
-          <p className="mb-2 text-center text-xs text-surface-muted">
+        <div className="rounded-xl border border-zinc-800/60 bg-zinc-950/40 px-4 py-3">
+          <p className="mb-2 text-center text-xs text-zinc-500">
             One-time security check to scan your wallet.
           </p>
           <TurnstileWidget
@@ -296,13 +269,6 @@ export function WalletCleaner() {
             onToken={handleTurnstileToken}
           />
         </div>
-      )}
-
-      {scanResult && !loading && !needsTurnstile && (
-        <p className={`text-center text-xs ${ui.muted}`}>
-          Scan complete. Tap <strong className="text-zinc-300">Rescan</strong>{" "}
-          to refresh.
-        </p>
       )}
 
       {error && <Alert type="error" message={error} />}
@@ -352,15 +318,16 @@ export function WalletCleaner() {
             recoverable={recoverable}
             summary={summary}
             loading={loading}
-            onRescan={requestRescan}
-            rpcConfigured={!!rpcConfigured}
+            empty={
+              !hasRecoverableSol(scanResult) &&
+              scanResult.protectedAccounts.length === 0 &&
+              scanResult.skippedAccounts.length === 0
+            }
           />
 
           {!hasRecoverableSol(scanResult) ? (
             scanResult.protectedAccounts.length === 0 &&
-            scanResult.skippedAccounts.length === 0 ? (
-              <EmptyState />
-            ) : (
+            scanResult.skippedAccounts.length === 0 ? null : (
               <SkippedAccountsCard scanResult={scanResult} />
             )
           ) : (
@@ -511,9 +478,9 @@ function Alert({ type, message }: { type: "error" | "info"; message: string }) {
 
 function LoadingState() {
   return (
-    <div className="text-center py-14">
-      <div className="inline-flex items-center justify-center w-10 h-10 rounded-full border-2 border-zinc-700 border-t-brand-400 animate-spin mb-4" />
-      <p className="text-surface-muted">Scanning wallet for recoverable SOL…</p>
+    <div className="py-12 text-center">
+      <div className="mb-3 inline-flex h-8 w-8 animate-spin rounded-full border-2 border-zinc-800 border-t-[#14F195]" />
+      <p className="text-sm text-zinc-500">Scanning wallet…</p>
     </div>
   );
 }
@@ -522,58 +489,58 @@ function UnclaimedSolCard({
   recoverable,
   summary,
   loading,
-  onRescan,
-  rpcConfigured,
+  empty,
 }: {
   recoverable: RecoverableBreakdown | null;
   summary: ReturnType<typeof buildReclaimSummary> | null;
   loading: boolean;
-  onRescan: () => void;
-  rpcConfigured: boolean;
+  empty?: boolean;
 }) {
   const youReceive = summary?.youReceiveLamports ?? 0;
   const canClaim = (recoverable?.totalCount ?? 0) > 0 && youReceive > 0;
 
   return (
-    <div className="relative rounded-xl border border-surface-border bg-surface-overlay p-8 text-center">
-      <button
-        type="button"
-        onClick={onRescan}
-        disabled={loading || !rpcConfigured}
-        className="absolute top-4 right-4 p-2 rounded-lg text-surface-muted hover:text-white hover:bg-zinc-800 disabled:opacity-40 transition-colors"
-        aria-label="Rescan wallet"
-      >
-        <svg className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-        </svg>
-      </button>
-
-      <p className="text-xs text-surface-muted mb-2">Total recoverable</p>
-      <p className="font-display text-4xl font-semibold text-white mb-1">
-        {formatSol(youReceive)}{" "}
-        <span className="text-2xl text-brand-400">SOL</span>
+    <div className="py-2 text-center">
+      <p className="mb-1 text-xs uppercase tracking-wider text-zinc-500">
+        Total recoverable
       </p>
-      {recoverable && recoverable.totalCount > 0 && (
-        <p className="text-sm text-surface-muted mb-1">
+      <p className="font-display text-4xl font-semibold tabular-nums text-zinc-50 sm:text-5xl">
+        {loading ? "—" : formatSol(youReceive)}{" "}
+        <span className="text-2xl text-[#14F195] sm:text-3xl">SOL</span>
+      </p>
+
+      {empty && !loading && (
+        <p className="mt-3 text-sm text-zinc-500">
+          Nothing to recover — no empty or junk accounts found.
+        </p>
+      )}
+
+      {!empty && recoverable && recoverable.totalCount > 0 && (
+        <p className="mt-2 text-sm text-zinc-500">
           {recoverable.totalCount} account
           {recoverable.totalCount === 1 ? "" : "s"}
           {recoverable.totalRentLamports > 0 && (
-            <> · {formatSol(recoverable.totalRentLamports)} SOL locked in rent</>
+            <> · {formatSol(recoverable.totalRentLamports)} SOL in rent</>
           )}
         </p>
       )}
+
       {canClaim && (
-        <p className="text-xs text-surface-muted/80">
-          After 1% platform fee and network fees
+        <p className="mt-1 text-xs text-zinc-600">
+          After 1% fee and network fees
         </p>
       )}
-      {recoverable && recoverable.emptyCount === 0 && recoverable.burnCount > 0 && (
-        <p className="mx-auto mt-3 max-w-md text-xs text-orange-300/90">
-          No empty accounts — but {recoverable.burnCount} junk token account
-          {recoverable.burnCount === 1 ? "" : "s"} can be burned to unlock this
-          SOL.
-        </p>
-      )}
+
+      {!empty &&
+        recoverable &&
+        recoverable.emptyCount === 0 &&
+        recoverable.burnCount > 0 && (
+          <p className="mx-auto mt-3 max-w-md text-xs text-orange-300/80">
+            {recoverable.burnCount} junk token account
+            {recoverable.burnCount === 1 ? "" : "s"} can be burned to unlock
+            this SOL.
+          </p>
+        )}
     </div>
   );
 }
@@ -584,9 +551,9 @@ function RecoverableBreakdownCard({
   recoverable: RecoverableBreakdown;
 }) {
   return (
-    <div className={`${ui.card} grid gap-3 p-4 text-sm sm:grid-cols-2`}>
+    <div className="flex flex-wrap gap-4 border-t border-zinc-800/60 pt-4 text-sm">
       {recoverable.emptyCount > 0 && (
-        <div className="rounded-lg border border-zinc-800 bg-zinc-950/40 px-3 py-2.5">
+        <div>
           <p className="text-xs text-zinc-500">Empty accounts</p>
           <p className="font-medium text-[#14F195]">
             {recoverable.emptyCount} · {formatSol(recoverable.emptyRentLamports)} SOL
@@ -594,29 +561,13 @@ function RecoverableBreakdownCard({
         </div>
       )}
       {recoverable.burnCount > 0 && (
-        <div className="rounded-lg border border-orange-500/20 bg-orange-500/5 px-3 py-2.5">
-          <p className="text-xs text-zinc-500">Junk tokens (burn + close)</p>
+        <div>
+          <p className="text-xs text-zinc-500">Junk tokens</p>
           <p className="font-medium text-orange-300">
             {recoverable.burnCount} · {formatSol(recoverable.burnRentLamports)} SOL
           </p>
         </div>
       )}
-    </div>
-  );
-}
-
-function EmptyState() {
-  return (
-    <div className="text-center py-8 rounded-xl bg-surface-overlay border border-surface-border">
-      <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-brand-400/10 mb-3">
-        <svg className="w-6 h-6 text-brand-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-        </svg>
-      </div>
-      <p className="font-display text-base font-semibold mb-1">Nothing to recover</p>
-      <p className="text-sm text-surface-muted">
-        No empty or junk token accounts found right now.
-      </p>
     </div>
   );
 }
@@ -635,10 +586,10 @@ function SkippedAccountsCard({
   if (all.length === 0) return null;
 
   return (
-    <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-5 space-y-3 text-sm">
-      <p className="font-medium text-zinc-300">
-        {compact ? "Not included in reclaim" : "Protected & blocked accounts"}{" "}
-        {!compact && `(${formatSol(scanResult.skippedRentLamports)} SOL locked)`}
+    <div className="space-y-2 border-t border-zinc-800/60 pt-4 text-sm">
+      <p className="text-xs font-medium text-zinc-400">
+        {compact ? "Not included" : "Protected & blocked"}{" "}
+        {!compact && `· ${formatSol(scanResult.skippedRentLamports)} SOL`}
       </p>
       {!compact && (
         <p className={`leading-relaxed ${ui.muted}`}>
@@ -646,11 +597,11 @@ function SkippedAccountsCard({
           closed.
         </p>
       )}
-      <div className="space-y-2">
+      <div className="space-y-1.5">
         {all.map((account, i) => (
           <div
             key={i}
-            className="flex justify-between rounded-lg border border-zinc-800 bg-zinc-950/50 px-3 py-2 text-xs text-zinc-400"
+            className="flex justify-between gap-3 py-1.5 text-xs text-zinc-500"
           >
             <span>
               {account.label}
@@ -682,21 +633,17 @@ function TabButton({
   tone?: "reclaim" | "burn";
   children: React.ReactNode;
 }) {
-  const activeStyles =
-    tone === "burn"
-      ? "bg-orange-500/15 text-orange-300 ring-1 ring-orange-500/25"
-      : tone === "reclaim"
-        ? "bg-[#14F195]/12 text-[#14F195] ring-1 ring-[#14F195]/25"
-        : "bg-zinc-800 text-zinc-50";
+  const activeColor =
+    tone === "burn" ? "border-orange-400 text-orange-300" : "border-[#14F195] text-zinc-50";
 
   return (
     <button
       type="button"
       onClick={onClick}
-      className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg px-4 py-2.5 text-sm font-medium transition-all ${
+      className={`-mb-px flex items-center gap-1.5 border-b-2 pb-2.5 text-sm font-medium transition-colors ${
         active
-          ? activeStyles
-          : "text-zinc-500 hover:bg-zinc-900/80 hover:text-zinc-300"
+          ? activeColor
+          : "border-transparent text-zinc-500 hover:text-zinc-300"
       }`}
     >
       {children}

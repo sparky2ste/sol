@@ -297,6 +297,7 @@ export function buildSocialMentions(
 
   const seen = new Set<string>();
   return mentions.filter((m) => {
+    if (!m.url || m.url.includes("undefined")) return false;
     const key = `${m.platform}:${m.url}`;
     if (seen.has(key)) return false;
     seen.add(key);

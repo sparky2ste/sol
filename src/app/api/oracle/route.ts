@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { analyzeToken, validateMintAddress } from "@/lib/oracle/analyze";
+import { formatOracleError } from "@/lib/oracle/errors";
+import { parseMintInput } from "@/lib/oracle/parseMint";
 import { getServerRpcUrl } from "@/lib/solana/rpc";
 import {
   getClientIp,
@@ -13,7 +15,7 @@ export const revalidate = 0;
 const cache = new Map<string, { data: unknown; expiresAt: number }>();
 
 export async function GET(request: NextRequest) {
-  const mint = request.nextUrl.searchParams.get("mint")?.trim();
+  const mint = parseMintInput(request.nextUrl.searchParams.get("mint")?.trim() ?? "");
 
   if (!mint) {
     return NextResponse.json(
@@ -72,16 +74,14 @@ export async function GET(request: NextRequest) {
       headers: { "Cache-Control": "public, max-age=120" },
     });
   } catch (err) {
-    const message =
-      err instanceof Error && err.message
-        ? err.message
-        : typeof err === "string"
-          ? err
-          : "Failed to analyze token. Check the CA is a token mint.";
+    const message = formatOracleError(err);
     const userError =
       message.includes("not found") ||
       message.includes("not a token mint") ||
-      message.includes("No DexScreener");
+      message.includes("not a valid token") ||
+      message.includes("Invalid address") ||
+      message.includes("No DexScreener") ||
+      message.includes("pool address");
     return NextResponse.json(
       { error: "ORACLE_FAILED", message },
       { status: userError ? 400 : 500 }

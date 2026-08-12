@@ -213,23 +213,19 @@ export function ConnectWallet({
     isMobile && !inWalletBrowser && !anyInstalled;
 
   return (
-    <div className="mx-auto w-full max-w-md space-y-4">
+    <div className="mx-auto w-full max-w-sm space-y-2">
       {showMobileHint && (
-        <div className="rounded-xl border border-[#14F195]/20 bg-[#14F195]/5 p-4 text-center text-sm text-emerald-100/90">
-          <p className="mb-1 font-medium text-[#14F195]">On mobile?</p>
-          <p className="leading-relaxed text-zinc-400">
-            Tap a wallet below to open this site in its in-app browser, then
-            connect and claim.
-          </p>
+        <div className="mb-3 rounded-lg border border-[#14F195]/15 bg-[#14F195]/5 px-3 py-2.5 text-center text-xs text-zinc-400">
+          Tap a wallet to open in its app browser, then connect.
         </div>
       )}
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="space-y-2">
         {visibleWallets.map((item) => {
           const actionLabel = item.installed
             ? "Connect"
             : isMobile && !inWalletBrowser
-              ? "Open app"
+              ? "Open"
               : "Install";
 
           return (
@@ -238,25 +234,35 @@ export function ConnectWallet({
               type="button"
               disabled={isConnecting}
               onClick={() => connectWallet(item.name)}
-              className={`group relative overflow-hidden rounded-xl border border-zinc-800/80 bg-zinc-900/60 p-4 text-left transition-all hover:border-zinc-700 hover:bg-zinc-900/90 hover:shadow-lg hover:shadow-black/20 disabled:opacity-50 ${item.ring} hover:ring-1`}
+              className="group flex w-full items-center gap-3 rounded-xl border border-zinc-800/60 bg-zinc-950/50 px-4 py-3 text-left transition-all duration-200 hover:border-zinc-700 hover:bg-zinc-900/60 disabled:opacity-50"
             >
-              <div
-                className={`pointer-events-none absolute inset-0 bg-gradient-to-br opacity-0 transition-opacity group-hover:opacity-100 ${item.bg}`}
+              <WalletIcon
+                wallet={item.name}
+                className="h-8 w-8 shrink-0 rounded-lg"
               />
-              <div className="relative flex items-center gap-3">
-                <WalletIcon
-                  wallet={item.name}
-                  className="h-10 w-10 shrink-0 rounded-xl shadow-md"
+              <span className="min-w-0 flex-1 truncate text-sm font-medium text-zinc-100">
+                {item.shortLabel}
+              </span>
+              <span
+                className={`text-xs ${
+                  item.installed ? "text-[#14F195]" : "text-zinc-500"
+                }`}
+              >
+                {isConnecting ? "…" : actionLabel}
+              </span>
+              <svg
+                className="h-4 w-4 shrink-0 text-zinc-600 transition-transform duration-200 group-hover:translate-x-0.5 group-hover:text-zinc-400"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M9 5l7 7-7 7"
                 />
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-semibold text-zinc-50">
-                    {item.shortLabel}
-                  </p>
-                  <p className={`text-xs ${item.installed ? "text-[#14F195]" : ui.muted}`}>
-                    {isConnecting ? "Connecting…" : actionLabel}
-                  </p>
-                </div>
-              </div>
+              </svg>
             </button>
           );
         })}
@@ -265,18 +271,14 @@ export function ConnectWallet({
       <button
         type="button"
         onClick={() => setVisible(true)}
-        className={`${ui.btnSecondary} w-full !min-h-[44px] text-sm`}
+        className="w-full py-2 text-xs text-zinc-500 transition-colors hover:text-zinc-300"
       >
         More wallets
       </button>
 
       {error && (
-        <p className="text-center text-xs text-red-400">{error}</p>
+        <p className="pt-1 text-center text-xs text-red-400">{error}</p>
       )}
-
-      <p className={`text-center text-xs leading-relaxed ${ui.muted}`}>
-        Non-custodial. We never ask for your seed phrase.
-      </p>
     </div>
   );
 }

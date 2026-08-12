@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import type { OracleReport } from "@/lib/oracle/types";
+import { parseMintInput } from "@/lib/oracle/parseMint";
 import { truncateAddress } from "@/lib/format";
 import { ui } from "@/lib/ui";
 
@@ -40,11 +41,15 @@ export function OracleModule() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [report, setReport] = useState<OracleReport | null>(null);
+  const resultsRef = useRef<HTMLDivElement>(null);
 
   async function analyze(e: React.FormEvent) {
     e.preventDefault();
-    const ca = mint.trim();
-    if (!ca) return;
+    const ca = parseMintInput(mint);
+    if (!ca) {
+      setError("Paste a token mint address or DexScreener / Solscan link.");
+      return;
+    }
 
     setLoading(true);
     setError(null);
@@ -54,7 +59,14 @@ export function OracleModule() {
       const res = await fetch(`/api/oracle?mint=${encodeURIComponent(ca)}`, {
         cache: "no-store",
       });
-      const data = await res.json();
+
+      let data: { message?: string; error?: string };
+      try {
+        data = await res.json();
+      } catch {
+        throw new Error("Server error — try again in a moment.");
+      }
+
       if (!res.ok) {
         if (res.status === 429) {
           const retry = res.headers.get("Retry-After");
@@ -66,7 +78,15 @@ export function OracleModule() {
         }
         throw new Error(data.message ?? "Analysis failed");
       }
+
+      if (!data || typeof data !== "object" || !("verdict" in data)) {
+        throw new Error("Unexpected response from Oracle. Try again.");
+      }
+
       setReport(data as OracleReport);
+      requestAnimationFrame(() => {
+        resultsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Analysis failed");
     } finally {
@@ -100,13 +120,15 @@ export function OracleModule() {
         </div>
         <p className={`mt-3 text-xs ${ui.muted}`}>
           Paste the <strong className="text-zinc-400">token mint (CA)</strong>,
-          not a wallet address. Find it on DexScreener or Solscan under the
-          token — not your Phantom address.
+          a DexScreener link, or Solscan token URL — not your wallet address.
         </p>
       </form>
 
       {error && (
-        <div className="rounded-xl border border-red-500/25 bg-red-500/8 p-4 text-sm text-red-300">
+        <div
+          role="alert"
+          className="rounded-xl border border-red-500/25 bg-red-500/8 p-4 text-sm text-red-300"
+        >
           {error}
         </div>
       )}
@@ -115,10 +137,13 @@ export function OracleModule() {
         <div className="glass-card flex flex-col items-center py-16">
           <div className="mb-4 h-12 w-12 animate-spin rounded-full border-2 border-violet-500/30 border-t-violet-400" />
           <p className={ui.muted}>Reading chain, holders, and market…</p>
+          <p className="mt-2 text-xs text-zinc-600">Usually takes 5–15 seconds</p>
         </div>
       )}
 
-      {report && !loading && <OracleReportView report={report} />}
+      <div ref={resultsRef}>
+        {report && !loading && <OracleReportView report={report} />}
+      </div>
     </div>
   );
 }
