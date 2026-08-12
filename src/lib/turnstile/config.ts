@@ -21,12 +21,12 @@ export function isWorkersDevHost(hostname: string): boolean {
 }
 
 /** Use Turnstile test keys on workers.dev when the widget domain is not registered. */
-export function useTurnstileTestMode(hostname: string): boolean {
+export function isTurnstileTestMode(hostname: string): boolean {
   return isWorkersDevHost(hostname);
 }
 
 export function getTurnstileSiteKey(hostname?: string): string {
-  if (hostname && useTurnstileTestMode(hostname)) {
+  if (hostname && isTurnstileTestMode(hostname)) {
     return TURNSTILE_TEST_SITE_KEY;
   }
   return TURNSTILE_SITE_KEY;
@@ -35,7 +35,7 @@ export function getTurnstileSiteKey(hostname?: string): string {
 export function getTurnstileSecretForRequest(
   requestHost: string
 ): string | undefined {
-  if (useTurnstileTestMode(requestHost)) {
+  if (isTurnstileTestMode(requestHost)) {
     return TURNSTILE_TEST_SECRET;
   }
   return process.env.TURNSTILE_SECRET?.trim() || undefined;

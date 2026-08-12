@@ -1,7 +1,7 @@
 import {
   getTurnstileHostnames,
   getTurnstileSecretForRequest,
-  useTurnstileTestMode,
+  isTurnstileTestMode,
 } from "./config";
 
 interface SiteverifyResult {
@@ -57,7 +57,7 @@ export async function verifyTurnstileToken(
   }
 
   const actionOk =
-    useTurnstileTestMode(requestHost) ||
+    isTurnstileTestMode(requestHost) ||
     result.action === expectedAction;
 
   if (
