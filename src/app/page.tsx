@@ -9,6 +9,7 @@ import {
   SecuritySection,
 } from "@/components/Sections";
 import { WalletCleaner } from "@/components/WalletCleaner";
+import { AdSenseUnit } from "@/components/AdSenseUnit";
 import { ui } from "@/lib/ui";
 
 export default function Home() {
@@ -24,6 +25,8 @@ export default function Home() {
             <WalletCleaner />
           </div>
         </section>
+
+        <AdSenseUnit className="pb-10" />
 
         <RecentClaims />
         <ComparisonStrip />

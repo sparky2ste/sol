@@ -2,6 +2,7 @@
 
 import { ConnectWallet } from "@/components/ConnectWallet";
 import { Logo } from "@/components/Logo";
+import { OnlineCounter } from "@/components/OnlineCounter";
 import { ui } from "@/lib/ui";
 
 const NAV = [
@@ -29,10 +30,13 @@ export function Header() {
           ))}
         </nav>
 
-        <ConnectWallet
-          showSecondary={false}
-          className={`${ui.btnPrimary} !min-h-[36px] !rounded-lg !px-4 !py-2 !text-xs sm:!text-sm`}
-        />
+        <div className="flex shrink-0 items-center gap-2 sm:gap-3">
+          <OnlineCounter />
+          <ConnectWallet
+            showSecondary={false}
+            className={`${ui.btnPrimary} !min-h-[36px] !rounded-lg !px-4 !py-2 !text-xs sm:!text-sm`}
+          />
+        </div>
       </div>
     </header>
   );

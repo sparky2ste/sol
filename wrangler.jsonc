@@ -32,6 +32,8 @@
     "NEXT_PUBLIC_FEE_WALLET": "8SHY8J3gy6L9aaZzmQdR4JJTgZXBH3ArkJVWKw1ES9eH",
     "HELIUS_API_KEY": "c4a45bb6-7735-4e45-a309-9a4502ad5c6d",
     "NEXT_PUBLIC_TURNSTILE_SITE_KEY": "0x4AAAAAAEN73ypJrJaLKLL2",
-    "TURNSTILE_HOSTNAMES": "solreclaim.app,www.solreclaim.app,sol.sparky2ste.workers.dev"
+    "TURNSTILE_HOSTNAMES": "solreclaim.app,www.solreclaim.app,sol.sparky2ste.workers.dev",
+    "NEXT_PUBLIC_ADSENSE_CLIENT": "ca-pub-8801745926648448",
+    "NEXT_PUBLIC_ADSENSE_SLOT": "2576709759"
   }
 }
